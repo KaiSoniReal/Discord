@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auto Start Audio - Working Workaround</title>
+    <title>Auto Start Audio - All Workarounds Combined</title>
     <style>
         /* Fullscreen overlay for fallback */
         #overlay {
@@ -27,18 +27,9 @@
             padding: 0;
         }
 
-        /* Hide video primer */
-        video {
-            display: none;
-        }
-
-        /* Make audio visible for testing (remove 'display: block;' to hide) */
-        audio {
-            display: block; /* Change to 'none' to hide after testing */
-            position: fixed;
-            bottom: 10px;
-            left: 10px;
-            z-index: 10000;
+        /* Hide video, iframe, and audio for production (visible for testing) */
+        video, iframe, audio {
+            display: none; /* Change to 'block' for testing */
         }
     </style>
 </head>
@@ -46,80 +37,190 @@
 
 <!-- Overlay for manual fallback -->
 <div id="overlay">
-    ▶️ Click, tap, move cursor, scroll, or press a key to start audio
+    ▶️ Click, tap, move cursor, scroll, or press a key to start audio (Autoplay attempting...)
 </div>
 
-<!-- Hidden silent video for autoplay priming -->
+<!-- Hidden silent video for autoplay priming (base64 silent MP4) -->
 <video id="primerVideo" muted playsinline>
     <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAANtZGF0AAAA1m1vb3YAAABsbXZoZAAAAAAAAAAAAAAAAAAAA+gAAAAAAAEAAAEAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAOYaWF0YQAAAAAAAAACAAIAAAABAAAAAAEb2RhdGEAAAD4AAAAAQAAAAEAAAEAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" type="video/mp4">
 </video>
 
-<!-- Audio player with controls for testing -->
-<audio id="mainAudio" controls>
-    <source src="Jewelxxt%20luagh.mp3" type="audio/mpeg">
-    Your browser does not support the audio element.
-</audio>
+<!-- Hidden iframe with allow="autoplay" for separate context -->
+<iframe id="audioIframe" allow="autoplay"></iframe>
 
 <script>
     const overlay = document.getElementById('overlay');
     const primerVideo = document.getElementById('primerVideo');
-    const mainAudio = document.getElementById('mainAudio');
 
-    // Log audio errors for debugging
-    mainAudio.addEventListener('error', (err) => {
-        console.error('Audio error:', mainAudio.error.message, mainAudio.error.code);
-        // Common codes: 1 = Aborted, 2 = Network error (e.g., file not found), 3 = Decoding error, 4 = Unsupported format
-    });
+    // Write audio logic into iframe
+    const iframe = document.getElementById('audioIframe');
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeDoc.open();
+    iframeDoc.write(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head><meta charset="UTF-8"></head>
+        <body>
+            <!-- Silent primer audio in iframe (base64 silent MP3) -->
+            <audio id="primerAudio" muted>
+                <source src="data:audio/mpeg;base64,/+MYxAAAAANIAAAAAExBTUUzLjEwMAAAAAAAAAAAAAD/4QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" type="audio/mpeg">
+            </audio>
+            <!-- Main audio in iframe -->
+            <audio id="mainAudio" controls>
+                <source src="../Jewelxxt%20luagh.mp3" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+            <script>
+                const primerAudio = document.getElementById('primerAudio');
+                const mainAudio = document.getElementById('mainAudio');
+                let attempts = 0;
+                const maxAttempts = 10;
+                let retryInterval;
 
-    // Function to play main audio
-    function playMainAudio() {
-        mainAudio.play().then(() => {
-            overlay.style.display = 'none';
-            console.log('Main audio playing successfully');
-        }).catch(err => {
-            console.error('Main audio playback failed:', err.message);
-            overlay.textContent = '⚠️ Audio blocked or failed. Check console for errors and try again.';
-        });
-    }
+                // Log audio errors
+                mainAudio.addEventListener('error', (err) => {
+                    window.parent.postMessage('audioError: ' + mainAudio.error.message + ' (code: ' + mainAudio.error.code + ')', '*');
+                });
 
-    // Function to try autoplay with retries
-    function tryAutoplay(attempts = 0, maxAttempts = 5) {
-        console.log(`Autoplay attempt ${attempts + 1}`);
+                // Function to play main audio
+                function playMainAudio(isMuted = false) {
+                    if (isMuted) mainAudio.muted = true;
+                    const playPromise = mainAudio.play();
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            if (isMuted) {
+                                setTimeout(() => { mainAudio.muted = false; }, 100); // Unmute after delay
+                            }
+                            window.parent.postMessage('audioSuccess', '*');
+                            clearInterval(retryInterval);
+                        }).catch(err => {
+                            window.parent.postMessage('playError: ' + err.message, '*');
+                        });
+                    }
+                }
+
+                // Check autoplay policy
+                function checkAutoplayPolicy() {
+                    if ('getAutoplayPolicy' in navigator) {
+                        const policy = navigator.getAutoplayPolicy('mediaelement');
+                        window.parent.postMessage('policy: ' + policy, '*');
+                        if (policy === 'allowed') {
+                            playMainAudio();
+                        } else if (policy === 'allowed-muted') {
+                            playMainAudio(true); // Muted start
+                        } else if (policy === 'disallowed') {
+                            // Retry after potential interaction
+                            retryInterval = setInterval(() => playMainAudio(true), 500);
+                        }
+                    } else {
+                        playMainAudio(true); // Fallback to muted
+                    }
+                }
+
+                // Try primer audio then main
+                function tryAutoplay() {
+                    primerAudio.play().then(() => {
+                        primerAudio.pause();
+                        checkAutoplayPolicy();
+                    }).catch(err => {
+                        if (attempts < maxAttempts) {
+                            attempts++;
+                            setTimeout(tryAutoplay, 500);
+                        } else {
+                            window.parent.postMessage('primerError: ' + err.message, '*');
+                            checkAutoplayPolicy(); // Try anyway
+                        }
+                    });
+                }
+
+                // Start on load
+                window.addEventListener('load', tryAutoplay);
+                document.addEventListener('DOMContentLoaded', tryAutoplay);
+
+                // Listen for manual play from parent
+                window.addEventListener('message', (event) => {
+                    if (event.data === 'tryManualPlay') {
+                        playMainAudio();
+                    }
+                });
+            <\/script>
+        </body>
+        </html>
+    `);
+    iframeDoc.close();
+
+    // Main page logic: Primer video, simulations, gestures
+    let mainAttempts = 0;
+    const maxMainAttempts = 10;
+
+    // Function to try main primer video
+    function tryMainPrimer() {
         primerVideo.play().then(() => {
-            console.log('Primer video played successfully');
             primerVideo.pause();
-            playMainAudio();
+            console.log('Main primer video succeeded');
+            iframe.contentWindow.postMessage('tryManualPlay', '*'); // Trigger iframe play
         }).catch(err => {
-            console.error('Primer video failed:', err.message);
-            if (attempts < maxAttempts) {
-                setTimeout(() => tryAutoplay(attempts + 1, maxAttempts), 500);
-            } else {
-                console.log('All autoplay attempts failed - waiting for user interaction');
+            console.error('Main primer failed:', err.message);
+            if (mainAttempts < maxMainAttempts) {
+                mainAttempts++;
+                setTimeout(tryMainPrimer, 500);
             }
         });
     }
 
-    // Trigger autoplay on load
+    // Simulate interactions
+    function simulateInteraction(target = document) {
+        const events = [
+            new MouseEvent('click', { bubbles: true }),
+            new PointerEvent('pointerdown', { bubbles: true }),
+            new PointerEvent('pointermove', { bubbles: true }),
+            new Event('touchstart', { bubbles: true }),
+            new Event('scroll', { bubbles: true }),
+            new KeyboardEvent('keydown', { bubbles: true, key: ' ' })
+        ];
+        events.forEach(event => {
+            target.dispatchEvent(event);
+            console.log('Simulated ' + event.type + ' on ' + (target === document ? 'main' : 'iframe'));
+        });
+    }
+
+    // Handle messages from iframe
+    window.addEventListener('message', (event) => {
+        console.log('Message from iframe:', event.data);
+        if (event.data === 'audioSuccess') {
+            overlay.style.display = 'none';
+        } else if (event.data.startsWith('error') || event.data.startsWith('primerError')) {
+            overlay.textContent = '⚠️ Autoplay failed. Interact to start.';
+        } else if (event.data.startsWith('policy')) {
+            console.log('Autoplay policy:', event.data);
+        }
+    });
+
+    // Trigger everything on load
     window.addEventListener('load', () => {
-        console.log('Page loaded, attempting autoplay');
-        tryAutoplay();
+        console.log('Page loaded');
+        simulateInteraction();
+        simulateInteraction(iframe.contentWindow.document);
+        tryMainPrimer();
     });
 
     document.addEventListener('DOMContentLoaded', () => {
-        console.log('DOM content loaded, attempting autoplay');
-        tryAutoplay();
+        console.log('DOM loaded');
+        tryMainPrimer();
     });
 
-    // Fallback: Trigger on any user interaction
+    // Fallback gestures to trigger play
     const tryManualPlay = () => {
-        console.log('Manual interaction detected, attempting to play');
-        playMainAudio();
+        console.log('Manual interaction detected');
+        simulateInteraction();
+        simulateInteraction(iframe.contentWindow.document);
+        tryMainPrimer();
+        iframe.contentWindow.postMessage('tryManualPlay', '*');
     };
 
-    // Add multiple gesture listeners (run only once per type)
-    ['click', 'pointerdown', 'pointermove', 'touchstart', 'scroll', 'keydown'].forEach(eventType => {
+    ['click', 'pointerdown', 'pointermove', 'touchstart', 'scroll', 'keydown', 'mousemove'].forEach(eventType => {
         document.addEventListener(eventType, tryManualPlay, { once: true });
-        console.log(`Added listener for ${eventType}`);
+        console.log(`Added main listener for ${eventType}`);
     });
 </script>
 
