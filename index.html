@@ -1,86 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Autoplay Audio Fix</title>
-  <style>
-    #overlay {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: #000;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2rem;
-      cursor: pointer;
-      z-index: 9999;
-    }
-    body, html {
-      margin: 0;
-      padding: 0;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>Autoplay MP3</title>
 </head>
 <body>
-
-<div id="overlay">
-  ▶️ Click or press any key to start audio
-</div>
-
-<script>
-  const overlay = document.getElementById('overlay');
-  const audioUrl = 'Jewelxxt_luagh.mp3'; // Make sure this file exists!
-
-  let audioContext;
-  let sourceNode;
-
-  async function playAudio() {
-    try {
-      // Create AudioContext on user gesture
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      }
-
-      if (audioContext.state === 'suspended') {
-        await audioContext.resume();
-      }
-
-      const response = await fetch(audioUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to load audio (${response.status})`);
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = await audioContext.decodeAudioData(arrayBuffer);
-      sourceNode = audioContext.createBufferSource();
-      sourceNode.buffer = buffer;
-      sourceNode.connect(audioContext.destination);
-      sourceNode.start(0);
-
-      overlay.style.display = 'none';
-      console.log("Audio playing");
-    } catch (err) {
-      console.error("Audio failed:", err);
-      overlay.textContent = "⚠️ Audio failed. Check console & make sure the MP3 is available.";
-    }
-  }
-
-  function handleUserInteraction() {
-    playAudio();
-    // Remove gesture listeners
-    ['click', 'keydown', 'touchstart'].forEach(type =>
-      document.removeEventListener(type, handleUserInteraction)
-    );
-  }
-
-  ['click', 'keydown', 'touchstart'].forEach(type =>
-    document.addEventListener(type, handleUserInteraction)
-  );
-</script>
-
+  <audio autoplay>
+    <source src="Jewelxxt luagh.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
 </body>
 </html>
