@@ -2,22 +2,57 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Click to Play Audio</title>
+    <title>Auto Start Audio</title>
+    <style>
+        /* Fullscreen overlay to prompt user interaction */
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            cursor: pointer;
+            z-index: 9999;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
 </head>
 <body>
-    <h1>Click the Button to Play Audio</h1>
-    <button onclick="playAudio()">Play Audio</button>
 
-    <audio id="myAudio">
-        <source src="Jewelxxt luagh.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
-    </audio>
+<!-- Overlay that prompts user to click -->
+<div id="overlay">
+    ▶️ Click anywhere to start audio
+</div>
 
-    <script>
-        function playAudio() {
-            var audio = document.getElementById("myAudio");
-            audio.play();
-        }
-    </script>
+<!-- Hidden audio player -->
+<audio id="myAudio">
+    <source src="Jewelxxt luagh.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+</audio>
+
+<script>
+    const overlay = document.getElementById('overlay');
+    const audio = document.getElementById('myAudio');
+
+    overlay.addEventListener('click', () => {
+        audio.play().then(() => {
+            overlay.style.display = 'none'; // Hide overlay when playback starts
+        }).catch(err => {
+            console.error('Playback failed:', err);
+            overlay.textContent = '⚠️ Playback failed. Click again.';
+        });
+    });
+</script>
+
 </body>
 </html>
