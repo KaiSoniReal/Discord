@@ -14,6 +14,8 @@
       justify-content: center;
       align-items: center;
       z-index: 9999;
+      padding: 10px;
+      box-sizing: border-box;
     }
     
     .close-button {
@@ -26,6 +28,7 @@
       color: #fff;
       cursor: pointer;
       font-size: 16px;
+      z-index: 10;
     }
     
     .popup-content {
@@ -38,15 +41,19 @@
       max-height: 80vh;
       overflow-y: auto;
       box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     
     img {
-      width: 50%;
-      height: 50%;
-      display: block;
-      margin: 10px auto;
+      max-width: 100%;
+      max-height: 50vh; /* limit height to half viewport */
       object-fit: contain;
       border-radius: 8px;
+      margin: 15px 0;
+      user-select: none;
+      pointer-events: none;
     }
     
     /* Responsive */
@@ -58,6 +65,9 @@
       .close-button {
         top: 5px;
         right: 5px;
+      }
+      img {
+        max-height: 40vh;
       }
     }
   </style>
@@ -84,7 +94,6 @@
       popup.style.display = 'none';
     });
 
-    // Fullscreen helper (cross-browser)
     function enterFullscreen() {
       const el = document.documentElement;
       if (!el) return;
