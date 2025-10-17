@@ -1,63 +1,134 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Looping Image & Autoplay MP3</title>
+  <meta charset="UTF-8" />
+  <title>Spam Fullscreen on Mouse Move + Audio</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    body, html {
-      margin: 0;
-      padding: 0;
+    html, body {
       height: 100%;
-      background-color: black;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      margin: 0;
+      background: black;
+      overflow: hidden;
     }
 
-    img {
-      max-width: 100%;
-      max-height: 100%;
+    /* Image fills the viewport (cover style) */
+    #bg {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover; /* preserves aspect ratio while filling */
+      -webkit-user-drag: none;
+      user-select: none;
+      pointer-events: none; /* so mousemove passes through */
+    }
+
+    /* small instruction overlay (optional) */
+    #hint {
+      position: fixed;
+      left: 12px;
+      bottom: 12px;
+      color: rgba(255,255,255,0.9);
+      background: rgba(0,0,0,0.35);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      font-size: 13px;
     }
   </style>
 </head>
 <body>
-  <!-- Looping image (replace with your actual image file, like a .gif or .webp) -->
-  <img src="KaiSoni owns You!.png" alt="Looping Image" id="loopImage">
+  <!-- Replace with your image file; gif/webp for animations -->
+  <img id="bg" src="KaiSoni owns You!.png" alt="Background image">
 
-  <!-- Autoplaying MP3 audio -->
-  <audio autoplay>
-    <source src="Jewelxxt luagh.mp3" type="audio/mpeg">
-    Your browser does not support the audio element.
-  </audio>
+  <!-- Audio element (will be played programmatically on first user interaction) -->
+  <audio id="aud" src="Jewelxxt luagh.mp3" preload="auto" loop></audio>
+
+  <div id="hint">Move the mouse to trigger fullscreen & audio</div>
 
   <script>
-    // Request fullscreen
+    const audio = document.getElementById('aud');
+
+    // Cross-browser fullscreen request helper
     function enterFullscreen() {
-      const elem = document.documentElement;
-      if (elem.requestFullscreen) {
-        elem.requestFullscreen();
-      } else if (elem.webkitRequestFullscreen) {
-        elem.webkitRequestFullscreen();
-      } else if (elem.msRequestFullscreen) {
-        elem.msRequestFullscreen();
+      const el = document.documentElement;
+      if (!el) return;
+      // try the standard API first
+      if (el.requestFullscreen) {
+        el.requestFullscreen().catch(() => {/* ignored */});
+      } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen(); // Safari
+      } else if (el.msRequestFullscreen) {
+        el.msRequestFullscreen(); // IE11
       }
     }
 
-    // Some browsers require user interaction for fullscreen and autoplay
-    document.addEventListener('click', () => {
+    // We'll attempt repeatedly while the mouse is moving.
+    // Many browsers will only honor the first call until user leaves fullscreen,
+    // but we keep calling the API on movement as requested.
+    let spamInterval = null;
+    let stopTimer = null;
+
+    function startSpam() {
+      if (spamInterval) return;
+      // re-request every 600ms while movement continues
+      spamInterval = setInterval(() => {
+        enterFullscreen();
+      }, 600);
+    }
+
+    function stopSpam() {
+      if (spamInterval) {
+        clearInterval(spamInterval);
+        spamInterval = null;
+      }
+    }
+
+    // On mousemove (or touch), request fullscreen and start spamming.
+    // Also start audio playback (user interaction required by many browsers).
+    function handleUserMove() {
+      // attempt fullscreen immediately
       enterFullscreen();
-      document.querySelector('audio').play().catch(err => {
-        console.log('Autoplay failed:', err);
-      });
+
+      // start audio if not already playing
+      if (audio.paused) {
+        audio.play().catch(err => {
+          // console.log('play failed (may be blocked):', err);
+        });
+      }
+
+      // start repeated fullscreen calls
+      startSpam();
+
+      // clear any previous stop timer and set a new one to stop spamming shortly after movement stops
+      if (stopTimer) clearTimeout(stopTimer);
+      stopTimer = setTimeout(() => {
+        stopSpam();
+      }, 2000); // stop spamming 2 seconds after last movement
+    }
+
+    // Wire mouse and touch events
+    window.addEventListener('mousemove', handleUserMove, {passive: true});
+    window.addEventListener('touchstart', handleUserMove, {passive: true});
+    window.addEventListener('touchmove', handleUserMove, {passive: true});
+
+    // Try to auto-play/enter fullscreen on load (will likely be blocked until interaction)
+    window.addEventListener('load', () => {
+      // best-effort attempt
+      enterFullscreen();
+      audio.play().catch(() => {});
+      // do not start spam here — user interaction drives it
     });
 
-    // Try to auto-enter fullscreen and autoplay (may be blocked)
-    window.onload = () => {
-      enterFullscreen();
-      document.querySelector('audio').play().catch(err => {
-        console.log('Autoplay failed:', err);
-      });
-    };
+    // Optional: provide a keyboard shortcut to toggle fullscreen once (for testing)
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'f' || (e.key === 'F' && e.ctrlKey)) {
+        // user pressed 'f' (or ctrl+F) -> attempt fullscreen
+        e.preventDefault();
+        enterFullscreen();
+      }
+    });
   </script>
 </body>
 </html>
