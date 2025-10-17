@@ -2,15 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Hexxed!!</title>
+    <title>HEXXED</title>
 </head>
 <body>
-    <h1>Hexxed!</h1>
+    <h1>HEXXED</h1>
 
-    <audio controls>
-        <source src="Jewelxxt luagh.mp3" type="audio/mpeg">
-        
+    <audio id="myAudio" autoplay>
+        <source src="Jewelxxt luagh.mp3" type="audio/mpeg"
     </audio>
 
+    <script>
+        // Attempt to play the audio as soon as the page is loaded
+        window.addEventListener('load', function () {
+            var audio = document.getElementById('myAudio');
+            audio.play().catch(function(error) {
+                console.log('Autoplay blocked:', error);
+            });
+        });
+    </script>
 </body>
 </html>
