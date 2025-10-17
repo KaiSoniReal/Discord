@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Auto Start Audio on Cursor Move</title>
+    <title>Auto Start Audio</title>
     <style>
-        /* Fullscreen overlay for fallback if no cursor movement */
+        /* Fullscreen overlay for fallback */
         #overlay {
             position: fixed;
             top: 0;
@@ -29,12 +29,17 @@
 </head>
 <body>
 
-<!-- Overlay for fallback -->
+<!-- Overlay for manual fallback -->
 <div id="overlay">
-    ▶️ Move cursor or click to start audio
+    ▶️ Click or tap to start audio
 </div>
 
-<!-- Hidden audio player -->
+<!-- Hidden silent primer audio -->
+<audio id="primerAudio" muted>
+    <source src="data:audio/mpeg;base64,/+MYxAAAAANIAAAAAExBTUUzLjEwMAAAAAAAAAAAAAD/4QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" type="audio/mpeg">
+</audio>
+
+<!-- Hidden main audio player -->
 <audio id="myAudio">
     <source src="Jewelxxt luagh.mp3" type="audio/mpeg">
     Your browser does not support the audio element.
@@ -42,29 +47,54 @@
 
 <script>
     const overlay = document.getElementById('overlay');
-    const audio = document.getElementById('myAudio');
+    const primerAudio = document.getElementById('primerAudio');
+    const mainAudio = document.getElementById('myAudio');
 
-    // Function to play audio
-    function playAudio() {
-        audio.play().then(() => {
-            overlay.style.display = 'none'; // Hide overlay on successful play
+    // Function to play main audio
+    function playMainAudio() {
+        mainAudio.play().then(() => {
+            overlay.style.display = 'none'; // Hide overlay on success
+            console.log('Main audio playing successfully');
         }).catch(err => {
-            console.error('Playback failed:', err);
-            overlay.textContent = '⚠️ Playback failed. Move cursor or click again.';
+            console.error('Main audio playback failed:', err);
+            overlay.textContent = '⚠️ Playback failed. Click or tap again.';
         });
     }
 
-    // Trigger playback on cursor movement
-    document.addEventListener('mousemove', () => {
-        playAudio();
-        // Remove listener after first movement to prevent repeated triggers
-        document.removeEventListener('mousemove', playAudio);
-    }, { once: true });
+    // Function to try autoplay with primer
+    function tryAutoplay() {
+        // Play silent primer audio to bypass restrictions
+        primerAudio.play().then(() => {
+            console.log('Primer audio played successfully');
+            // Stop primer and play main audio
+            primerAudio.pause();
+            playMainAudio();
+        }).catch(err => {
+            console.error('Primer audio playback failed:', err);
+            // Fallback to user interaction
+            overlay.textContent = '⚠️ Autoplay blocked. Click or tap to start.';
+            // Add click and touchstart listeners for fallback
+            const tryManualPlay = () => {
+                playMainAudio();
+                document.removeEventListener('click', tryManualPlay);
+                document.removeEventListener('touchstart', tryManualPlay);
+            };
+            document.addEventListener('click', tryManualPlay, { once: true });
+            document.addEventListener('touchstart', tryManualPlay, { once: true });
+        });
+    }
 
-    // Fallback: Allow manual click to play audio
-    overlay.addEventListener('click', () => {
-        playAudio();
-    }, { once: true });
+    // Attempt autoplay on page load
+    window.addEventListener('load', () => {
+        console.log('Page loaded, attempting autoplay');
+        tryAutoplay();
+    });
+
+    // Additional trigger for DOM content loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('DOM content loaded, attempting autoplay');
+        tryAutoplay();
+    });
 </script>
 
 </body>
