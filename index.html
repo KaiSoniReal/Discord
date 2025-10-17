@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auto Start Audio - Extreme Workaround</title>
+    <title>Auto Start Audio - Ultimate Workaround</title>
     <style>
         /* Fullscreen overlay for fallback */
         #overlay {
@@ -27,8 +27,8 @@
             padding: 0;
         }
 
-        /* Hide iframe */
-        iframe {
+        /* Hide video and iframe */
+        video, iframe {
             display: none;
         }
     </style>
@@ -37,118 +37,98 @@
 
 <!-- Overlay for manual fallback -->
 <div id="overlay">
-    ▶️ Click, tap, scroll, or press any key to start audio
+    ▶️ Click, tap, move cursor, scroll, or press a key to start audio
 </div>
 
-<!-- Hidden iframe to create permissive autoplay context -->
-<iframe id="audioIframe" allow="autoplay"></iframe>
+<!-- Hidden silent video for autoplay priming -->
+<video id="primerVideo" muted playsinline>
+    <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAANtZGF0AAAA1m1vb3YAAABsbXZoZAAAAAAAAAAAAAAAAAAAA+gAAAAAAAEAAAEAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAOYaWF0YQAAAAAAAAACAAIAAAABAAAAAAEb2RhdGEAAAD4AAAAAQAAAAEAAAEAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" type="video/mp4">
+</video>
+
+<!-- Hidden audio player -->
+<audio id="mainAudio">
+    <source src="Jewelxxt luagh.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+</audio>
 
 <script>
-    // Create a minimal HTML page for the iframe with the audio
-    const iframe = document.getElementById('audioIframe');
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-    iframeDoc.open();
-    iframeDoc.write(`
-        <audio id="primerAudio" muted>
-            <source src="data:audio/mpeg;base64,/+MYxAAAAANIAAAAAExBTUUzLjEwMAAAAAAAAAAAAAD/4QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" type="audio/mpeg">
-        </audio>
-        <audio id="mainAudio">
-            <source src="Jewelxxt luagh.mp3" type="audio/mpeg">
-        </audio>
-        <script>
-            const primerAudio = document.getElementById('primerAudio');
-            const mainAudio = document.getElementById('mainAudio');
-            let attempts = 0;
-            const maxAttempts = 5;
-
-            function playMainAudio() {
-                mainAudio.play().then(() => {
-                    window.parent.postMessage('audioSuccess', '*');
-                }).catch(err => {
-                    window.parent.postMessage('audioError: ' + err.message, '*');
-                });
-            }
-
-            function tryAutoplay() {
-                primerAudio.play().then(() => {
-                    primerAudio.pause();
-                    playMainAudio();
-                }).catch(err => {
-                    if (attempts < maxAttempts) {
-                        attempts++;
-                        setTimeout(tryAutoplay, 500);
-                    } else {
-                        window.parent.postMessage('primerError: ' + err.message, '*');
-                    }
-                });
-            }
-
-            window.addEventListener('load', tryAutoplay);
-            document.addEventListener('DOMContentLoaded', tryAutoplay);
-            document.addEventListener('click', playMainAudio, { once: true });
-            document.addEventListener('touchstart', playMainAudio, { once: true });
-        </script>
-    `);
-    iframeDoc.close();
-
-    // Main page logic
     const overlay = document.getElementById('overlay');
+    const primerVideo = document.getElementById('primerVideo');
+    const mainAudio = document.getElementById('mainAudio');
 
-    // Handle messages from iframe
-    window.addEventListener('message', (event) => {
-        console.log('Message from iframe:', event.data);
-        if (event.data === 'audioSuccess') {
-            overlay.style.display = 'none'; // Hide overlay on success
-        } else if (event.data.startsWith('audioError') || event.data.startsWith('primerError')) {
-            overlay.textContent = '⚠️ Autoplay blocked. Click, tap, scroll, or press a key.';
-        }
-    });
+    // Function to play main audio
+    function playMainAudio() {
+        mainAudio.play().then(() => {
+            overlay.style.display = 'none';
+            console.log('Main audio playing successfully');
+        }).catch(err => {
+            console.error('Main audio playback failed:', err.message);
+            overlay.textContent = '⚠️ Audio blocked. Click, tap, move cursor, scroll, or press a key.';
+        });
+    }
 
-    // Simulate user interaction with synthetic events
+    // Function to try autoplay with retries
+    function tryAutoplay(attempts = 0, maxAttempts = 5) {
+        console.log(`Autoplay attempt ${attempts + 1}`);
+        primerVideo.play().then(() => {
+            console.log('Primer video played successfully');
+            primerVideo.pause();
+            playMainAudio();
+        }).catch(err => {
+            console.error('Primer video failed:', err.message);
+            if (attempts < maxAttempts) {
+                setTimeout(() => tryAutoplay(attempts + 1, maxAttempts), 500);
+            } else {
+                console.log('All autoplay attempts failed');
+                overlay.textContent = '⚠️ Autoplay blocked. Click, tap, move cursor, scroll, or press a key.';
+            }
+        });
+    }
+
+    // Simulate user interaction
     function simulateInteraction() {
         const events = [
             new MouseEvent('click', { bubbles: true }),
-            new Event('touchstart', { bubbles: true }),
+            new PointerEvent('pointerdown', { bubbles: true }),
+            new PointerEvent('pointermove', { bubbles: true }),
             new Event('scroll', { bubbles: true }),
             new KeyboardEvent('keydown', { bubbles: true, key: ' ' })
         ];
         events.forEach(event => {
             document.dispatchEvent(event);
-            iframe.contentWindow.document.dispatchEvent(event);
             console.log('Simulated event:', event.type);
         });
     }
 
-    // Trigger autoplay and simulate interaction
+    // Trigger autoplay on load
     window.addEventListener('load', () => {
         console.log('Page loaded, attempting autoplay');
         simulateInteraction();
+        tryAutoplay();
     });
 
     document.addEventListener('DOMContentLoaded', () => {
         console.log('DOM content loaded, attempting autoplay');
-        simulateInteraction();
+        tryAutoplay();
     });
 
     // Fallback: Trigger on any user interaction
     const tryManualPlay = () => {
-        iframe.contentWindow.postMessage('tryManualPlay', '*');
+        console.log('Manual interaction detected, attempting to play');
+        playMainAudio();
+        // Remove all listeners after first successful trigger
         document.removeEventListener('click', tryManualPlay);
+        document.removeEventListener('pointerdown', tryManualPlay);
+        document.removeEventListener('pointermove', tryManualPlay);
         document.removeEventListener('touchstart', tryManualPlay);
         document.removeEventListener('scroll', tryManualPlay);
         document.removeEventListener('keydown', tryManualPlay);
     };
 
-    document.addEventListener('click', tryManualPlay, { once: true });
-    document.addEventListener('touchstart', tryManualPlay, { once: true });
-    document.addEventListener('scroll', tryManualPlay, { once: true });
-    document.addEventListener('keydown', tryManualPlay, { once: true });
-
-    // Listen for manual play command from main page
-    window.addEventListener('message', (event) => {
-        if (event.data === 'tryManualPlay') {
-            iframe.contentWindow.document.getElementById('mainAudio').play();
-        }
+    // Add multiple gesture listeners
+    ['click', 'pointerdown', 'pointermove', 'touchstart', 'scroll', 'keydown'].forEach(eventType => {
+        document.addEventListener(eventType, tryManualPlay, { once: true });
+        console.log(`Added listener for ${eventType}`);
     });
 </script>
 
