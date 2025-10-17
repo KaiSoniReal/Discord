@@ -1,91 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auto Start Audio - Web Audio API Workaround</title>
-    <style>
-        #overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: #000;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            cursor: pointer;
-            z-index: 9999;
-        }
-        body, html {
-            margin: 0;
-            padding: 0;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Autoplay Audio Fix</title>
+  <style>
+    #overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #000;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      cursor: pointer;
+      z-index: 9999;
+    }
+    body, html {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
 </head>
 <body>
 
 <div id="overlay">
-    ▶️ Tap, click, scroll, or press a key to start audio
+  ▶️ Click or press any key to start audio
 </div>
 
 <script>
-    const overlay = document.getElementById('overlay');
-    const audioUrl = 'Jewelxxt_luagh.mp3'; // Ensure this file exists in the same folder
-    const fallbackSilentUrl = 'data:audio/mpeg;base64,/+MYxAAAAANIAAAAAExBTUUzLjEwMAAAAAAAAAAAAAD/4QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
+  const overlay = document.getElementById('overlay');
+  const audioUrl = 'Jewelxxt_luagh.mp3'; // Make sure this file exists!
 
-    let audioContext;
-    let sourceNode;
+  let audioContext;
+  let sourceNode;
 
-    async function playAudio(url) {
-        try {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioContext.state === 'suspended') {
-                await audioContext.resume();
-            }
+  async function playAudio() {
+    try {
+      // Create AudioContext on user gesture
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
 
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`Failed to load audio: ${response.status}`);
-            
-            const arrayBuffer = await response.arrayBuffer();
-            const buffer = await audioContext.decodeAudioData(arrayBuffer);
-            sourceNode = audioContext.createBufferSource();
-            sourceNode.buffer = buffer;
-            sourceNode.connect(audioContext.destination);
-            sourceNode.start(0);
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
 
-            overlay.style.display = 'none';
-            console.log('Audio playback started.');
-        } catch (err) {
-            console.error(err);
-            if (url !== fallbackSilentUrl) {
-                console.warn('Trying fallback silent audio...');
-                playAudio(fallbackSilentUrl);
-            } else {
-                overlay.textContent = '⚠️ Audio failed. Please check console.';
-            }
-        }
+      const response = await fetch(audioUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to load audio (${response.status})`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = await audioContext.decodeAudioData(arrayBuffer);
+      sourceNode = audioContext.createBufferSource();
+      sourceNode.buffer = buffer;
+      sourceNode.connect(audioContext.destination);
+      sourceNode.start(0);
+
+      overlay.style.display = 'none';
+      console.log("Audio playing");
+    } catch (err) {
+      console.error("Audio failed:", err);
+      overlay.textContent = "⚠️ Audio failed. Check console & make sure the MP3 is available.";
     }
+  }
 
-    function userTriggeredPlay() {
-        console.log('User interaction detected. Attempting audio playback...');
-        playAudio(audioUrl);
-    }
+  function handleUserInteraction() {
+    playAudio();
+    // Remove gesture listeners
+    ['click', 'keydown', 'touchstart'].forEach(type =>
+      document.removeEventListener(type, handleUserInteraction)
+    );
+  }
 
-    window.addEventListener('load', () => {
-        // Try autoplay, may be blocked
-        playAudio(audioUrl);
-    });
-
-    // Fallback on user gesture
-    ['click', 'pointerdown', 'pointermove', 'touchstart', 'scroll', 'keydown'].forEach(event => {
-        document.addEventListener(event, userTriggeredPlay, { once: true });
-    });
+  ['click', 'keydown', 'touchstart'].forEach(type =>
+    document.addEventListener(type, handleUserInteraction)
+  );
 </script>
 
 </body>
