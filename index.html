@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Auto Start Audio - Web Audio API Workaround</title>
     <style>
-        /* Fullscreen overlay for fallback */
         #overlay {
             position: fixed;
             top: 0;
@@ -21,7 +20,6 @@
             cursor: pointer;
             z-index: 9999;
         }
-
         body, html {
             margin: 0;
             padding: 0;
@@ -30,91 +28,63 @@
 </head>
 <body>
 
-<!-- Overlay for manual fallback -->
 <div id="overlay">
-    ▶️ Click, tap, move cursor, scroll, or press a key to start audio (Autoplay attempting...)
+    ▶️ Tap, click, scroll, or press a key to start audio
 </div>
 
 <script>
     const overlay = document.getElementById('overlay');
-    const audioUrl = 'Jewelxxt%20luagh.mp3'; // Your file with %20 for space; change to 'jewelxxt_luagh.mp3' if renamed
-    const fallbackSilentUrl = 'data:audio/mpeg;base64,/+MYxAAAAANIAAAAAExBTUUzLjEwMAAAAAAAAAAAAAD/4QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=='; // Base64 silent MP3 for testing
+    const audioUrl = 'Jewelxxt_luagh.mp3'; // Ensure this file exists in the same folder
+    const fallbackSilentUrl = 'data:audio/mpeg;base64,/+MYxAAAAANIAAAAAExBTUUzLjEwMAAAAAAAAAAAAAD/4QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
 
     let audioContext;
     let sourceNode;
-    let attempts = 0;
-    const maxAttempts = 5;
 
-    // Function to load and play audio buffer
-    async function loadAndPlayAudio(url, isFallback = false) {
+    async function playAudio(url) {
         try {
-            console.log(`Attempting to load audio from: ${url} (Attempt ${attempts + 1})`);
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`Fetch failed: ${response.status} - Check if file exists and is accessible`);
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
             }
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to load audio: ${response.status}`);
+            
             const arrayBuffer = await response.arrayBuffer();
-            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            const buffer = await audioContext.decodeAudioData(arrayBuffer);
             sourceNode = audioContext.createBufferSource();
-            sourceNode.buffer = audioBuffer;
+            sourceNode.buffer = buffer;
             sourceNode.connect(audioContext.destination);
             sourceNode.start(0);
-            console.log(`${isFallback ? 'Fallback' : 'Main'} audio playing successfully`);
+
             overlay.style.display = 'none';
+            console.log('Audio playback started.');
         } catch (err) {
-            console.error(`Audio load/play failed: ${err.message}`);
-            if (attempts < maxAttempts && !isFallback) {
-                attempts++;
-                setTimeout(() => loadAndPlayAudio(url), 500);
-            } else if (!isFallback) {
-                // Try fallback silent sound to test if issue is file-specific
-                console.log('Main file failed - testing fallback silent sound');
-                loadAndPlayAudio(fallbackSilentUrl, true);
+            console.error(err);
+            if (url !== fallbackSilentUrl) {
+                console.warn('Trying fallback silent audio...');
+                playAudio(fallbackSilentUrl);
             } else {
-                overlay.textContent = '⚠️ Audio failed. Check console for errors and try interacting.';
+                overlay.textContent = '⚠️ Audio failed. Please check console.';
             }
         }
     }
 
-    // Function to start/resume AudioContext and attempt play
-    async function tryPlay(isMuted = false) {
-        if (!audioContext) {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioContext.state === 'suspended') {
-            await audioContext.resume();
-        }
-        if (isMuted) {
-            // Muted start not directly supported in Web Audio API, but we can set volume low then ramp up
-            const gainNode = audioContext.createGain();
-            gainNode.gain.value = 0;
-            gainNode.connect(audioContext.destination);
-            gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + 0.1); // Fade in
-        }
-        loadAndPlayAudio(audioUrl);
+    function userTriggeredPlay() {
+        console.log('User interaction detected. Attempting audio playback...');
+        playAudio(audioUrl);
     }
 
-    // Attempt autoplay on load
     window.addEventListener('load', () => {
-        console.log('Page loaded, attempting autoplay');
-        tryPlay(true); // Try muted first
+        // Try autoplay, may be blocked
+        playAudio(audioUrl);
     });
 
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('DOM loaded, attempting autoplay');
-        tryPlay();
-    });
-
-    // Fallback: Trigger on any user interaction
-    const tryManualPlay = () => {
-        console.log('Manual interaction detected, attempting to play');
-        tryPlay();
-    };
-
-    // Add multiple gesture listeners
-    ['click', 'pointerdown', 'pointermove', 'touchstart', 'scroll', 'keydown'].forEach(eventType => {
-        document.addEventListener(eventType, tryManualPlay, { once: true });
-        console.log(`Added listener for ${eventType}`);
+    // Fallback on user gesture
+    ['click', 'pointerdown', 'pointermove', 'touchstart', 'scroll', 'keydown'].forEach(event => {
+        document.addEventListener(event, userTriggeredPlay, { once: true });
     });
 </script>
 
