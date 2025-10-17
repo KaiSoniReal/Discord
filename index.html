@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Auto Start Audio</title>
+    <title>Auto Start Audio on Cursor Move</title>
     <style>
-        /* Fullscreen overlay for fallback if autoplay fails */
+        /* Fullscreen overlay for fallback if no cursor movement */
         #overlay {
             position: fixed;
             top: 0;
@@ -25,95 +25,46 @@
             margin: 0;
             padding: 0;
         }
-
-        /* Hide iframe */
-        iframe {
-            display: none;
-        }
     </style>
 </head>
 <body>
 
-<!-- Overlay for manual fallback -->
+<!-- Overlay for fallback -->
 <div id="overlay">
-    ▶️ Click anywhere to start audio
+    ▶️ Move cursor or click to start audio
 </div>
 
 <!-- Hidden audio player -->
-<audio id="myAudio" muted>
+<audio id="myAudio">
     <source src="Jewelxxt luagh.mp3" type="audio/mpeg">
     Your browser does not support the audio element.
 </audio>
-
-<!-- Hidden iframe to simulate interaction context -->
-<iframe id="dummyIframe" src="about:blank" allow="autoplay"></iframe>
 
 <script>
     const overlay = document.getElementById('overlay');
     const audio = document.getElementById('myAudio');
 
-    // Function to attempt audio playback
-    function tryPlayAudio(attempts = 0, maxAttempts = 3) {
-        audio.muted = true; // Start muted to bypass restrictions
-        const playPromise = audio.play();
-
-        if (playPromise !== undefined) {
-            playPromise
-                .then(() => {
-                    // Playback started, try unmuting
-                    setTimeout(() => {
-                        audio.muted = false; // Unmute after short delay
-                        overlay.style.display = 'none'; // Hide overlay
-                    }, 100);
-                })
-                .catch(err => {
-                    console.error(`Autoplay attempt ${attempts + 1} failed:`, err);
-                    if (attempts < maxAttempts) {
-                        // Retry after a delay
-                        setTimeout(() => tryPlayAudio(attempts + 1, maxAttempts), 500);
-                    } else {
-                        // Fallback to manual trigger
-                        overlay.textContent = '⚠️ Autoplay blocked by browser. Click to start.';
-                        overlay.addEventListener('click', () => {
-                            audio.muted = false;
-                            audio.play().then(() => {
-                                overlay.style.display = 'none';
-                            }).catch(err => {
-                                console.error('Manual playback failed:', err);
-                                overlay.textContent = '⚠️ Playback failed. Click again.';
-                            });
-                        }, { once: true });
-                    }
-                });
-        }
+    // Function to play audio
+    function playAudio() {
+        audio.play().then(() => {
+            overlay.style.display = 'none'; // Hide overlay on successful play
+        }).catch(err => {
+            console.error('Playback failed:', err);
+            overlay.textContent = '⚠️ Playback failed. Move cursor or click again.';
+        });
     }
 
-    // Simulate user interaction by dispatching a synthetic event
-    function simulateInteraction() {
-        const event = new Event('click', { bubbles: true });
-        document.dispatchEvent(event);
-    }
-
-    // Attempt autoplay on multiple triggers
-    window.addEventListener('load', () => {
-        simulateInteraction(); // Simulate a click to boost MEI
-        tryPlayAudio();
-    });
-
-    document.addEventListener('DOMContentLoaded', () => {
-        tryPlayAudio();
-    });
-
-    // Additional trigger on any user gesture (e.g., mouse move)
+    // Trigger playback on cursor movement
     document.addEventListener('mousemove', () => {
-        tryPlayAudio();
+        playAudio();
+        // Remove listener after first movement to prevent repeated triggers
+        document.removeEventListener('mousemove', playAudio);
     }, { once: true });
 
-    // Try to leverage iframe for autoplay permissions
-    const iframe = document.getElementById('dummyIframe');
-    iframe.addEventListener('load', () => {
-        tryPlayAudio();
-    });
+    // Fallback: Allow manual click to play audio
+    overlay.addEventListener('click', () => {
+        playAudio();
+    }, { once: true });
 </script>
 
 </body>
