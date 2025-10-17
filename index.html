@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Auto Start Audio</title>
     <style>
-        /* Fullscreen overlay to prompt user interaction */
+        /* Fullscreen overlay for fallback if autoplay fails */
         #overlay {
             position: fixed;
             top: 0;
@@ -29,7 +29,7 @@
 </head>
 <body>
 
-<!-- Overlay that prompts user to click -->
+<!-- Overlay that prompts user to click if autoplay fails -->
 <div id="overlay">
     ▶️ Click anywhere to start audio
 </div>
@@ -44,12 +44,22 @@
     const overlay = document.getElementById('overlay');
     const audio = document.getElementById('myAudio');
 
-    overlay.addEventListener('click', () => {
+    // Attempt to autoplay on page load
+    window.addEventListener('load', () => {
         audio.play().then(() => {
-            overlay.style.display = 'none'; // Hide overlay when playback starts
+            overlay.style.display = 'none'; // Hide overlay if playback starts
         }).catch(err => {
-            console.error('Playback failed:', err);
-            overlay.textContent = '⚠️ Playback failed. Click again.';
+            console.error('Autoplay failed:', err);
+            // Keep overlay visible for manual trigger if autoplay fails
+            overlay.textContent = '⚠️ Autoplay blocked. Click to start.';
+            overlay.addEventListener('click', () => {
+                audio.play().then(() => {
+                    overlay.style.display = 'none'; // Hide overlay on successful play
+                }).catch(err => {
+                    console.error('Playback failed:', err);
+                    overlay.textContent = '⚠️ Playback failed. Click again.';
+                });
+            });
         });
     });
 </script>
