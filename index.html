@@ -19,30 +19,11 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      background-color: #000; /* Changed to black for better contrast */
+      background-color: #000; /* Black background for contrast */
       display: flex;
       justify-content: center;
       align-items: center;
       z-index: 9999;
-    }
-    
-    .close-button {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      padding: 8px 16px;
-      border: none;
-      border-radius: 4px;
-      background-color: #f44336;
-      color: #fff;
-      cursor: pointer;
-      font-size: 16px; /* Increased for visibility */
-      z-index: 10000; /* Ensure above image */
-      transition: background-color 0.3s;
-    }
-    
-    .close-button:hover {
-      background-color: #d32f2f;
     }
     
     .popup-content {
@@ -56,20 +37,10 @@
     img {
       width: 100%;
       height: 100%;
-      object-fit: cover; /* Changed to cover for full-screen fill */
+      object-fit: contain; /* Changed back to contain to show full image */
       object-position: center; /* Center the image */
       user-select: none;
       pointer-events: none;
-    }
-    
-    /* Responsive Adjustments */
-    @media screen and (max-width: 767px) {
-      .close-button {
-        top: 5px;
-        right: 5px;
-        padding: 6px 12px;
-        font-size: 14px;
-      }
     }
   </style>
 </head>
@@ -77,7 +48,6 @@
   <div class="fullscreen-popup" id="popup">
     <div class="popup-content">
       <img src="KaiSoni owns You!.png" alt="Fullscreen Image" />
-      <button class="close-button" id="closeBtn">Close</button>
     </div>
   </div>
 
@@ -85,14 +55,7 @@
 
   <script>
     const popup = document.getElementById('popup');
-    const closeBtn = document.getElementById('closeBtn');
     const audio = document.getElementById('aud');
-
-    // Close button functionality
-    closeBtn.addEventListener('click', () => {
-      popup.style.display = 'none';
-      audio.pause(); // Pause audio when closing
-    });
 
     // Fullscreen functionality
     function enterFullscreen() {
@@ -111,7 +74,7 @@
     function tryPlayAudio() {
       audio.play().catch((error) => {
         console.log('Autoplay prevented:', error);
-        // Add a user interaction fallback
+        // Fallback to play on user interaction
         document.addEventListener('click', () => {
           audio.play().catch(() => {});
         }, { once: true });
