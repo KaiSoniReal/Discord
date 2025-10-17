@@ -2,12 +2,62 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Autoplay MP3</title>
+  <title>Looping Image & Autoplay MP3</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    img {
+      max-width: 100%;
+      max-height: 100%;
+    }
+  </style>
 </head>
 <body>
+  <!-- Looping image (replace with your actual image file, like a .gif or .webp) -->
+  <img src="KaiSoni owns You!.png" alt="Looping Image" id="loopImage">
+
+  <!-- Autoplaying MP3 audio -->
   <audio autoplay>
     <source src="Jewelxxt luagh.mp3" type="audio/mpeg">
     Your browser does not support the audio element.
   </audio>
+
+  <script>
+    // Request fullscreen
+    function enterFullscreen() {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+      }
+    }
+
+    // Some browsers require user interaction for fullscreen and autoplay
+    document.addEventListener('click', () => {
+      enterFullscreen();
+      document.querySelector('audio').play().catch(err => {
+        console.log('Autoplay failed:', err);
+      });
+    });
+
+    // Try to auto-enter fullscreen and autoplay (may be blocked)
+    window.onload = () => {
+      enterFullscreen();
+      document.querySelector('audio').play().catch(err => {
+        console.log('Autoplay failed:', err);
+      });
+    };
+  </script>
 </body>
 </html>
