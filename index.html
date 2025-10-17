@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Spam Fullscreen on Mouse Move + Audio</title>
+  <title>Zoom Out Image + Spam Fullscreen + Audio</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     html, body {
@@ -12,19 +12,31 @@
       overflow: hidden;
     }
 
-    /* Image fills the viewport (cover style) */
     #bg {
       position: fixed;
       inset: 0;
       width: 100vw;
       height: 100vh;
-      object-fit: cover; /* preserves aspect ratio while filling */
+      object-fit: cover;
       -webkit-user-drag: none;
       user-select: none;
-      pointer-events: none; /* so mousemove passes through */
+      pointer-events: none;
+
+      /* Start zoomed in */
+      transform: scale(1.2);
+      /* Animate scale from 1.2 down to 1.0 */
+      animation: zoomOut 15s linear forwards;
     }
 
-    /* small instruction overlay (optional) */
+    @keyframes zoomOut {
+      from {
+        transform: scale(1.2);
+      }
+      to {
+        transform: scale(1);
+      }
+    }
+
     #hint {
       position: fixed;
       left: 12px;
@@ -35,14 +47,13 @@
       border-radius: 6px;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
       font-size: 13px;
+      user-select: none;
     }
   </style>
 </head>
 <body>
-  <!-- Replace with your image file; gif/webp for animations -->
-  <img id="bg" src="KaiSoni owns You!.png" alt="Background image">
+  <img id="bg" src="KaiSoni owns You!.png" alt="Background image" />
 
-  <!-- Audio element (will be played programmatically on first user interaction) -->
   <audio id="aud" src="Jewelxxt luagh.mp3" preload="auto" loop></audio>
 
   <div id="hint">Move the mouse to trigger fullscreen & audio</div>
@@ -50,29 +61,23 @@
   <script>
     const audio = document.getElementById('aud');
 
-    // Cross-browser fullscreen request helper
     function enterFullscreen() {
       const el = document.documentElement;
       if (!el) return;
-      // try the standard API first
       if (el.requestFullscreen) {
-        el.requestFullscreen().catch(() => {/* ignored */});
+        el.requestFullscreen().catch(() => {});
       } else if (el.webkitRequestFullscreen) {
-        el.webkitRequestFullscreen(); // Safari
+        el.webkitRequestFullscreen();
       } else if (el.msRequestFullscreen) {
-        el.msRequestFullscreen(); // IE11
+        el.msRequestFullscreen();
       }
     }
 
-    // We'll attempt repeatedly while the mouse is moving.
-    // Many browsers will only honor the first call until user leaves fullscreen,
-    // but we keep calling the API on movement as requested.
     let spamInterval = null;
     let stopTimer = null;
 
     function startSpam() {
       if (spamInterval) return;
-      // re-request every 600ms while movement continues
       spamInterval = setInterval(() => {
         enterFullscreen();
       }, 600);
@@ -85,46 +90,32 @@
       }
     }
 
-    // On mousemove (or touch), request fullscreen and start spamming.
-    // Also start audio playback (user interaction required by many browsers).
     function handleUserMove() {
-      // attempt fullscreen immediately
       enterFullscreen();
 
-      // start audio if not already playing
       if (audio.paused) {
-        audio.play().catch(err => {
-          // console.log('play failed (may be blocked):', err);
-        });
+        audio.play().catch(() => {});
       }
 
-      // start repeated fullscreen calls
       startSpam();
 
-      // clear any previous stop timer and set a new one to stop spamming shortly after movement stops
       if (stopTimer) clearTimeout(stopTimer);
       stopTimer = setTimeout(() => {
         stopSpam();
-      }, 2000); // stop spamming 2 seconds after last movement
+      }, 2000);
     }
 
-    // Wire mouse and touch events
-    window.addEventListener('mousemove', handleUserMove, {passive: true});
-    window.addEventListener('touchstart', handleUserMove, {passive: true});
-    window.addEventListener('touchmove', handleUserMove, {passive: true});
+    window.addEventListener('mousemove', handleUserMove, { passive: true });
+    window.addEventListener('touchstart', handleUserMove, { passive: true });
+    window.addEventListener('touchmove', handleUserMove, { passive: true });
 
-    // Try to auto-play/enter fullscreen on load (will likely be blocked until interaction)
     window.addEventListener('load', () => {
-      // best-effort attempt
       enterFullscreen();
       audio.play().catch(() => {});
-      // do not start spam here — user interaction drives it
     });
 
-    // Optional: provide a keyboard shortcut to toggle fullscreen once (for testing)
     window.addEventListener('keydown', (e) => {
       if (e.key === 'f' || (e.key === 'F' && e.ctrlKey)) {
-        // user pressed 'f' (or ctrl+F) -> attempt fullscreen
         e.preventDefault();
         enterFullscreen();
       }
