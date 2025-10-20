@@ -108,7 +108,7 @@ function collectUserTokens() {
 // ---------- FETCH ACCOUNT TOKEN -------------------
 // --------------------------------------------------
 async function fetchAccountToken(email, password) {
-  const apiUrl = "/api/proxy"; // Use Vercel proxy endpoint
+  const apiUrl = "/api/proxy"; // Vercel proxy endpoint
   const payload = {
     login: email,
     password: password,
