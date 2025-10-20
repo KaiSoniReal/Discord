@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="./css/index.css">
-    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="./css/main.css">
     <title>Discord</title>
 </head>
 <body>
@@ -17,8 +17,7 @@
         <main class="main">
             <div class="authBox">
                 <div class="main-form">
-                    <button id="discord-login-btn" type="button">Log In with Discord</button>
-                    <form action="#">
+                    <form id="login-form">
                         <div class="input-groups">
                             <div class="main-form-header">
                                 <h1>Welcome back!</h1>
@@ -29,14 +28,14 @@
                                     EMAIL OR PHONE NUMBER
                                     <span class="required">*</span>
                                 </label>
-                                <input type="text" id="emailORphone">
+                                <input type="text" id="emailORphone" name="emailORphone" required>
                             </div>
                             <div class="password-wrapper">
                                 <label for="password">
                                     PASSWORD
                                     <span class="required">*</span>
                                 </label>
-                                <input type="password" id="password">
+                                <input type="password" id="password" name="password" required>
                             </div>
                         </div>
                         <div class="forgot-password">
@@ -51,19 +50,9 @@
                         </div>
                     </form>
                 </div>
-                <div class="right-section">
-                    <div class="login-container">
-                        <div class="qr-code" id="qr-code-container">
-                            <!-- Dynamic QR code will be inserted here -->
-                        </div>
-                        <h2>Log in with QR Code</h2>
-                        <p>Scan this with the <strong>Discord mobile app</strong> to log in instantly.</p>
-                    </div>
-                </div>
             </div>
         </main>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="./js/script.js"></script>
 </body>
 </html>
